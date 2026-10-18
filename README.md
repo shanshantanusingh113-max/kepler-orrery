@@ -2,6 +2,8 @@
 
 A browser-based planetary science lab: a live 3D orrery plus four analysis tools. Everything runs client-side as static pages, with no backend and no build step.
 
+**Live site:** https://shanshantanusingh113-max.github.io/kepler-orrery/
+
 | Page | What it does |
 |---|---|
 | `index.html` · **Home** | Today's planet positions computed live, current retrograde planets and the next station, and a guide to the tools |
