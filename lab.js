@@ -96,11 +96,11 @@ Lab.geoLon=function(p,jd){ const P=Lab.kepler(p,jd), E=Lab.kepler(Lab.PLANETS[2]
 Lab.isRetro=function(p,jd){ let d=Lab.geoLon(p,jd+.5)-Lab.geoLon(p,jd-.5); d=(d+3*Math.PI)%(2*Math.PI)-Math.PI; return d<0; };
 
 /* ---------- previous / next tool links on tool pages ---------- */
-Lab.TOOLS=[['sky.html','Tonight\'s Sky'],['events.html','Sky Events'],['iss.html','ISS Tracker'],['orrery.html','Kepler Orrery'],['marswalk.html','Marswalk Planner'],['you.html','You on Planets'],['quiz.html','Space Quiz'],['anomaly.html','Anomaly Hunter'],['mission.html','Mission Survival'],['landing.html','Landing Sites'],['discovery.html','Discovery Engine']];
+Lab.TOOLS=[['sky.html','Tonight\'s Sky'],['orrery.html','Kepler Orrery'],['marswalk.html','Marswalk Planner'],['anomaly.html','Anomaly Hunter'],['mission.html','Mission Survival'],['landing.html','Landing Sites'],['discovery.html','Discovery Engine']];
 document.addEventListener('DOMContentLoaded',()=>{
   const cur=document.querySelector('.nav a.tab[aria-current="page"]'), wrap=document.querySelector('main.wrap');
   if(!cur||!wrap) return;
-  const i=Lab.TOOLS.findIndex(t=>t[0]===(window.App?App.here:cur.getAttribute('href'))); if(i<0) return;
+  const i=Lab.TOOLS.findIndex(t=>t[0]===cur.getAttribute('href')); if(i<0) return;
   const prev=Lab.TOOLS[i-1], next=Lab.TOOLS[i+1];
   const el=document.createElement('nav'); el.className='pager'; el.setAttribute('aria-label','More tools');
   el.innerHTML=(prev?`<a href="${prev[0]}" class="prev"><small>Previous</small>${prev[1]}</a>`:'<span></span>')+(next?`<a href="${next[0]}" class="next"><small>Next tool</small>${next[1]}</a>`:`<a href="index.html" class="next"><small>Back to</small>Lab home</a>`);

@@ -1,6 +1,6 @@
 # Solar System Lab
 
-A browser-based planetary science lab: a live 3D orrery, sky guides for India (tonight's sky, sky events, ISS passes), a Marswalk planner, learning tools and four research tools. Hindi and English, installable as an app, works offline. Everything runs client-side as static pages, with no backend and no build step.
+A browser-based planetary science lab: a live 3D orrery, a tonight's-sky guide, a Marswalk planner and four analysis tools. Everything runs client-side as static pages, with no backend and no build step.
 
 **Live site:** https://shanshantanusingh113-max.github.io/kepler-orrery/
 
@@ -8,10 +8,6 @@ A browser-based planetary science lab: a live 3D orrery, sky guides for India (t
 |---|---|
 | `index.html` · **Home** | A live 3D solar system behind the page (scroll-driven camera, animated Sun, asteroid belt, comet), today's real numbers, animated Kepler's-laws demos, a light-speed race, and a Hindi/English voice intro with synced captions |
 | `sky.html` · **Tonight's Sky (आज रात का आसमान)** | Pick an Indian city (or your location) and see which planets are visible tonight: rise/set, best time, direction and height, brightness, constellation, Moon phase, a time-scrubbable sky view and a night timeline. Hindi and English |
-| `events.html` · **Sky Events** | Eclipses (NASA list), meteor showers (IMO), planet conjunctions, oppositions, greatest elongations, retrograde stations, supermoons and seasons for the next 12 months, each checked for visibility from your city, with a countdown and .ics calendar export |
-| `iss.html` · **ISS Tracker** | Live ISS position on a world map with day/night, ground track and footprint; visible passes over Indian cities from the latest CelesTrak TLE propagated with SGP4 (satellite.js); sky-dome pass paths and calendar export |
-| `you.html` · **You on Planets** | Your age, weight and next birthday on every planet, with a shareable PNG planet card (Web Share / WhatsApp) |
-| `quiz.html` · **Space Quiz** | Ten-question quizzes; LIVE questions are computed from today's planet positions, the rest cover Kepler's laws, Indian missions, Mars rovers and the lab's tools |
 | `orrery.html` · **Kepler Orrery** | 3D solar system driven by real Keplerian elements, with live orbital-motion detection |
 | `marswalk.html` · **Marswalk Planner** | A layered map of western Jezero Crater (terrain, slope hazards, CRISM-style minerals, THEMIS-style rock cover, radio line of sight, walk-back time) with a route planner that checks a suited astronaut's walk against oxygen, EVA time, daylight, radio gaps, dust and radiation, plus a live Mars clock and NASA MOLA regional relief |
 | `anomaly.html` · **Planetary Anomaly Hunter** | Registers two images of the same site, screens sensor artifacts, ranks surface changes and rare textures with confidence scores |
@@ -32,12 +28,6 @@ A browser-based planetary science lab: a live 3D orrery, sky guides for India (t
 ## Tonight's Sky
 
 `sky-engine.js` converts the same JPL elements into topocentric altitude and azimuth: precession to date, light-time correction, ecliptic-to-equatorial rotation, sidereal time and the observer's latitude and longitude. The Moon uses a simplified lunar theory with its main perturbation terms and a parallax correction. Rise, set and twilight times come from 4-minute sampling with interpolation, good to about two minutes for planets. Magnitudes use standard Astronomical Almanac approximations.
-
-## For everyone
-
-- **हिंदी / English.** A switch in the navigation bar translates the interface on every page (`i18n.js`, loaded only when Hindi is chosen). The newer pages generate their own text in both languages.
-- **Point your phone.** On Tonight's Sky, “Point your phone” uses the compass and tilt sensors to show which planet or bright star is in front of you, with arrows to a chosen target. Without sensors, drag to look around.
-- **Installable app.** `manifest.webmanifest` and `sw.js` make the site installable on Android, iPhone and desktop and keep it working offline after the first visit (live ISS and NASA data excepted).
 
 ## Marswalk Planner
 
