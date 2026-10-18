@@ -1,0 +1,319 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="claude:viewport-fit-sides" content="cover">
+<title>Mission Survival</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Michroma&display=swap">
+<link rel="stylesheet" href="lab.css">
+<style>
+.sens{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px}
+.sens li{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr) 70px;gap:4px 14px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
+.sens li:last-child{border-bottom:0}
+.sens .nm{font-size:13.5px;font-weight:500}
+.sens .ex{grid-column:1/4;font-size:12.5px;color:var(--muted);line-height:1.5}
+.sens .dv{font:500 13px/1 var(--f-mono);text-align:right;font-variant-numeric:tabular-nums}
+.sens .dv.up{color:var(--good)} .sens .dv.down{color:var(--alert)}
+.dbar{position:relative;height:8px;background:rgba(150,168,210,.08);border-radius:4px}
+.dbar::before{content:"";position:absolute;left:50%;top:-3px;bottom:-3px;width:1px;background:var(--line2)}
+.dbar i{position:absolute;top:0;bottom:0;border-radius:4px}
+.causes{display:flex;flex-direction:column;gap:9px}
+.cause{display:grid;grid-template-columns:150px minmax(0,1fr) 52px;gap:10px;align-items:center;font-size:12.5px}
+.cause .bar{height:10px}
+.cause .p{font:500 12px/1 var(--f-mono);text-align:right}
+.chart svg{width:100%;height:auto;display:block}
+@media (max-width:560px){ .sens li{grid-template-columns:minmax(0,1fr) 64px} .sens .dbar{grid-column:1/3;grid-row:2} .sens .ex{grid-column:1/3} .cause{grid-template-columns:110px minmax(0,1fr) 46px} }
+</style>
+</head>
+<body>
+<nav class="nav"><div class="nav-in">
+  <a class="mark" href="index.html">SOLAR SYSTEM LAB</a>
+  <a class="tab" href="index.html">Orrery</a>
+  <a class="tab" href="anomaly.html">Anomaly Hunter</a>
+  <a class="tab" href="mission.html" aria-current="page">Mission Survival</a>
+  <a class="tab" href="landing.html">Landing Sites</a>
+  <a class="tab" href="discovery.html">Discovery Engine</a>
+</div></nav>
+
+<main class="wrap">
+  <div class="phead">
+    <div>
+      <div class="eyebrow">Tool 02 · Monte Carlo reliability</div>
+      <h1>Mission Failure Predictor</h1>
+      <p>Simulates hundreds of possible missions for one surface rover design. Each run has its own dust storms, panel dust, cold nights, missed relay passes and component wear-out. The tool then re-runs the same missions with single design changes and ranks which one buys the most survival.</p>
+    </div>
+  </div>
+
+  <div class="layout">
+    <aside class="stack">
+      <div class="card">
+        <h2>Destination</h2>
+        <div class="field"><select id="env" aria-label="Destination"></select></div>
+        <div class="field"><label for="len">Target mission length <output id="lenV"></output></label><input type="range" id="len" min="60" max="1400" step="1"></div>
+        <div class="field"><label for="runs">Simulated missions <output id="runsV">300</output></label><input type="range" id="runs" min="100" max="800" step="50" value="300"></div>
+      </div>
+      <div class="card" id="design">
+        <h2>Rover design</h2>
+        <div class="field"><label for="area">Solar array area <output id="areaV"></output></label><input type="range" id="area" min="0" max="10" step="0.25" value="4"></div>
+        <div class="field"><label for="batt">Battery capacity <output id="battV"></output></label><input type="range" id="batt" min="200" max="6000" step="100" value="1200"></div>
+        <div class="field"><label for="load">Avionics and science load <output id="loadV"></output></label><input type="range" id="load" min="15" max="150" step="5" value="60"></div>
+        <div class="field"><label for="heater">Survival heater power <output id="heaterV"></output></label><input type="range" id="heater" min="0" max="120" step="5" value="35"></div>
+        <div class="field"><label for="rth">Insulation (thermal resistance) <output id="rthV"></output></label><input type="range" id="rth" min="0.2" max="1.6" step="0.05" value="0.7"></div>
+        <div class="field"><label for="rtg">Radioisotope power (RTG) <output id="rtgV"></output></label><input type="range" id="rtg" min="0" max="150" step="5" value="0"></div>
+        <div class="field"><label for="dustMit">Dust mitigation</label>
+          <select id="dustMit"><option value="0">None</option><option value="1">Anti-dust coating</option><option value="2">Active cleaning (4 W)</option></select></div>
+        <div class="field"><label for="mtbf">Component reliability <output id="mtbfV"></output></label><input type="range" id="mtbf" min="0.5" max="3" step="0.1" value="1"></div>
+        <div class="field"><label for="autonomy">Autonomy without contact <output id="autonomyV"></output></label><input type="range" id="autonomy" min="2" max="60" step="1" value="14"></div>
+        <label class="check"><input type="checkbox" id="redund"> Redundant computer and radio</label>
+        <div class="divider"></div>
+        <div class="btns"><button class="btn primary" id="btnRun">Run simulation</button><button class="btn" id="btnReset">Reset design</button></div>
+        <div class="progress" style="margin-top:12px" aria-hidden="true"><i id="prog"></i></div>
+        <p class="hint" id="status">Ready.</p>
+      </div>
+    </aside>
+
+    <div class="stack">
+      <div class="stats" id="stats"></div>
+      <div class="card chart">
+        <h2>Survival curve <b id="survTitle"></b></h2>
+        <div id="survChart"></div>
+        <div class="legend" style="margin-top:8px"><span><i style="background:var(--sun)"></i>Current design</span><span><i style="background:var(--good)"></i>With the top-ranked change</span><span><i style="background:var(--muted)"></i>Target length</span></div>
+      </div>
+      <div class="row">
+        <div class="card">
+          <h2>How missions ended</h2>
+          <div class="causes" id="causes"></div>
+        </div>
+        <div class="card chart">
+          <h2>One failed mission, day by day <b id="traceTitle"></b></h2>
+          <div id="traceChart"></div>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Design changes ranked by survival gain</h2>
+        <p class="hint" id="sensNote" hidden style="margin:0 0 10px;color:var(--warn)">No single change rescues this design, so changes are ranked by how much longer missions last on average. Combine several, for example more RTG power together with better insulation, then run again.</p>
+        <ol class="sens" id="sens"></ol>
+        <p class="hint">Every variant re-uses the same random storms, dust, relay drop-outs and part lifetimes as the baseline (common random numbers), so differences come from the design change, not from luck.</p>
+      </div>
+    </div>
+  </div>
+
+  <p class="foot">Engineering model, not flight software. Values are representative of published surface-mission figures (solar irradiance at Mars about 590 W/m², lunar night about 354 hours, MMRTG output decay about 4.8% per year), simplified to a single-node thermal model with louvers and Weibull wear-out. Use it to compare designs, not to certify one.</p>
+</main>
+
+<script src="lab.js"></script>
+<script>
+(function(){
+"use strict";
+const {$,rng,clamp,fmt,pct,esc}=Lab;
+const YR=8766;
+const ENVS={
+  marsEq:{label:'Mars · equatorial plains',unit:'sol',unitH:24.66,dayH:24.66,G0:590,clear:.75,stormT:.22,stormP:.0016,stormMin:30,stormMax:100,Tday:-5,Tnight:-78,stormDay:-12,stormNight:14,seasonG:.1,seasonT:6,year:668.6,dust:.0022,cleanP:.008,passes:2,passP:.92,len:687},
+  marsMid:{label:'Mars · 45° N plains',unit:'sol',unitH:24.66,dayH:24.66,G0:590,clear:.72,stormT:.2,stormP:.0024,stormMin:25,stormMax:80,Tday:-22,Tnight:-98,stormDay:-10,stormNight:12,seasonG:.38,seasonT:20,year:668.6,dust:.0018,cleanP:.012,passes:2,passP:.9,len:687},
+  moonEq:{label:'Moon · equatorial nearside',unit:'day',unitH:24,dayH:708.7,G0:1361,clear:1,stormT:1,stormP:0,stormMin:0,stormMax:0,Tday:10,Tnight:-150,stormDay:0,stormNight:0,seasonG:0,seasonT:0,year:365.25,dust:.00004,cleanP:0,passes:3,passP:.97,len:365}
+};
+const CAUSES={power:['Power shortage','#f2b04a'],cold:['Thermal stress (cold)','#86b6ff'],heat:['Thermal stress (heat)','#ff8a6e'],comm:['Communication gap','#c49cff'],wear:['Component wear-out','#e9cf5c'],survived:['Completed mission','#6fd1a2']};
+const DEFAULTS={area:4,batt:1200,load:60,heater:35,rth:.7,rtg:0,dustMit:0,mtbf:1,autonomy:14,redund:false};
+
+/* ---------------- simulation core ---------------- */
+function simulate(cfg,env,runs,traceN){
+  const unitH=env.unitH, dt=env.dayH===unitH?unitH/12:2, Hh=cfg.len*unitH, steps=Math.ceil(Hh/dt), eff=.28, a=1-Math.exp(-dt/10);
+  const dustF=[1,.55,.15][cfg.dustMit], extra=cfg.dustMit===2?4:0;
+  const lives=new Float64Array(runs), causes=new Array(runs), details=new Array(runs), traces=[];
+  const passU=new Float64Array(env.passes);
+  for(let r=0;r<runs;r++){
+    const R=rng(r*104729+7919);
+    const wb=(eta,beta)=>eta*Math.pow(-Math.log(1-R()),1/beta);
+    const c1=wb(9*YR*cfg.mtbf,1.3), c2=wb(9*YR*cfg.mtbf,1.3), r1=wb(12*YR*cfg.mtbf,1.5), r2=wb(12*YR*cfg.mtbf,1.5), mob=wb(4.5*YR*cfg.mtbf,2.2);
+    const tC=cfg.redund?Math.max(c1,c2):c1, tR=cfg.redund?Math.max(r1,r2):r1;
+    let wearT=mob, wearWhat='mobility system'; if(tC<wearT){wearT=tC;wearWhat='flight computer';} if(tR<wearT){wearT=tR;wearWhat='radio';}
+    let E=cfg.batt, cap=cfg.batt, T=5, dust=0, storm=0, hib=false, hibSince=false, hibStart=0, last=0, day=-1, life=Hh, cause='survived', detail='';
+    const tr=r<traceN?{soc:[],tmin:[],tmax:[],storm:[]}:null;
+    for(let k=0;k<steps;k++){
+      const t=k*dt, d=Math.floor(t/unitH);
+      if(d!==day){
+        day=d; const u1=R(),u2=R(),u3=R();
+        for(let p=0;p<env.passes;p++) passU[p]=R();
+        if(storm>0) storm--; else if(u1<env.stormP) storm=Math.round(env.stormMin+u2*(env.stormMax-env.stormMin));
+        dust=Math.min(.9,dust+env.dust*dustF*(storm>0?3:1));
+        if(u3<env.cleanP) dust*=.35;
+        if(tr){ tr.soc.push(1); tr.tmin.push(99); tr.tmax.push(-999); tr.storm.push(storm>0); }
+      }
+      if(t>=wearT){ life=t; cause='wear'; detail=wearWhat+' failed'; break; }
+      const phase=(t%env.dayH)/env.dayH, s=Math.max(0,Math.sin(2*Math.PI*phase));
+      const sf=Math.cos(2*Math.PI*(t/unitH)/env.year), yrs=t/YR, rtgNow=cfg.rtg*Math.pow(.952,yrs);
+      const G=env.G0*s*(storm>0?env.stormT:env.clear)*(1+env.seasonG*sf);
+      const Pin=G*cfg.area*eff*(1-dust)+rtgNow;
+      const Td=env.Tday+env.seasonT*sf+(storm>0?env.stormDay:0), Tn=env.Tnight+env.seasonT*sf*.6+(storm>0?env.stormNight:0);
+      const Tenv=Tn+(Td-Tn)*Math.pow(s,.6);
+      const heaterOn=!hib&&cfg.heater>0&&T<-25;
+      const Pload=hib?0:cfg.load+extra+(heaterOn?cfg.heater:0);
+      if(Pload>Pin) cap-=(Pload-Pin)*dt*.25/2000;
+      if(T<-20) cap-=cfg.batt*4e-6;
+      if(cap<cfg.batt*.3) cap=cfg.batt*.3;
+      E+=(Pin-Pload)*dt; if(E>cap)E=cap;
+      if(E<=0){ E=0; if(!hib){ hib=true; hibSince=true; hibStart=t; } } else if(hib&&E>cap*.25) hib=false;
+      const Pint=(hib?0:(cfg.load+extra)*.9+(heaterOn?cfg.heater:0))+rtgNow*.8;
+      const lf=clamp((T-10)/25,0,1), Rth=cfg.rth+(Math.min(cfg.rth,.2)-cfg.rth)*lf;   // louvers open gradually from +10 °C to +35 °C
+      T+=(Tenv+Pint*Rth-T)*a;
+      for(let p=0;p<env.passes;p++){ const pt=day*unitH+(p+.5)/env.passes*unitH; if(pt>=t&&pt<t+dt&&!hib&&passU[p]<env.passP&&E>15){ last=t; hibSince=false; } }
+      if(tr){ const i=tr.soc.length-1; tr.soc[i]=Math.min(tr.soc[i],E/cfg.batt); tr.tmin[i]=Math.min(tr.tmin[i],T); tr.tmax[i]=Math.max(tr.tmax[i],T); }
+      if(T<-50){ life=t; cause=hib?'power':'cold'; detail=hib?'electronics froze while the battery was empty':'heater could not hold electronics above −50 °C'; break; }
+      if(T>55){ life=t; cause='heat'; detail='electronics passed +55 °C'; break; }
+      if(hib&&t-hibStart>25*unitH){ life=t; cause='power'; detail='stayed in low-power hibernation for 25 '+env.unit+'s'; break; }
+      if(t-last>cfg.autonomy*unitH){ life=t; cause=hibSince?'power':'comm'; detail=hibSince?'kept dropping into hibernation and missed relay passes past the autonomy limit':'missed relay contact past the autonomy limit'; break; }
+    }
+    lives[r]=life/unitH; causes[r]=cause; details[r]=detail; if(tr){ tr.life=life/unitH; tr.cause=cause; tr.detail=detail; traces.push(tr); }
+  }
+  const surv=causes.filter(c=>c==='survived').length/runs;
+  const tally={}; Object.keys(CAUSES).forEach(k=>tally[k]=0); causes.forEach(c=>tally[c]++);
+  return {lives,causes,details,surv,tally,traces,runs,len:cfg.len};
+}
+
+/* ---------------- UI state ---------------- */
+let env=ENVS.marsEq, busy=false, pending=false, last=null;
+const envSel=$('env'); Object.entries(ENVS).forEach(([k,e])=>{ const o=document.createElement('option'); o.value=k; o.textContent=e.label; envSel.appendChild(o); });
+const fmts={area:v=>v.toFixed(2)+' m²',batt:v=>(v/1000).toFixed(1)+' kWh',load:v=>v+' W',heater:v=>v+' W',rth:v=>v.toFixed(2)+' K/W',rtg:v=>v?v+' W':'none',mtbf:v=>'×'+v.toFixed(1),autonomy:v=>v+' '+env.unit+'s',len:v=>v+' '+env.unit+'s',runs:v=>String(v)};
+function bindRange(id){ const el=$(id), o=$(id+'V'); const upd=()=>{ o.textContent=fmts[id](+el.value); }; el.addEventListener('input',upd); upd(); }
+['area','batt','load','heater','rth','rtg','mtbf','autonomy','len','runs'].forEach(bindRange);
+function readCfg(){ return {area:+$('area').value,batt:+$('batt').value,load:+$('load').value,heater:+$('heater').value,rth:+$('rth').value,rtg:+$('rtg').value,dustMit:+$('dustMit').value,mtbf:+$('mtbf').value,autonomy:+$('autonomy').value,redund:$('redund').checked,len:+$('len').value}; }
+function setCfg(c){ Object.entries(c).forEach(([k,v])=>{ const el=$(k); if(!el) return; if(el.type==='checkbox') el.checked=v; else el.value=v; el.dispatchEvent(new Event('input')); }); }
+function setEnv(k){ env=ENVS[k]; $('len').value=env.len; ['len','autonomy'].forEach(id=>$(id).dispatchEvent(new Event('input'))); }
+
+/* ---------------- sensitivity variants ---------------- */
+function variants(c){
+  const v=[];
+  v.push({name:'Grow the solar array 30%',f:x=>({...x,area:x.area*1.3}),note:'More area and mass to stow and deploy.'});
+  v.push({name:'Add 40% more battery',f:x=>({...x,batt:x.batt*1.4}),note:'Batteries are heavy and also need heating.'});
+  v.push({name:'Cut avionics load 20%',f:x=>({...x,load:x.load*.8}),note:'Usually means less science time or lower-power parts.'});
+  v.push({name:'Add 15 W of heater',f:x=>({...x,heater:x.heater+15}),note:'Warmer nights, but drains the battery faster.'});
+  v.push({name:'Insulate 25% better',f:x=>({...x,rth:x.rth*1.25}),note:'Keeps heat in at night; louvers dump excess by day.'});
+  v.push({name:'Insulate 25% less',f:x=>({...x,rth:x.rth*.75}),note:'Sheds heat faster, which only helps if the rover runs hot.'});
+  if(c.rtg===0) v.push({name:'Add a 60 W RTG',f:x=>({...x,rtg:60}),note:'Needs plutonium-238, which is scarce and needs launch approval.'});
+  else v.push({name:'Add 30 W of RTG power',f:x=>({...x,rtg:x.rtg+30}),note:'More plutonium-238 and more waste heat.'});
+  if(c.dustMit<2) v.push({name:c.dustMit===0?'Add anti-dust panel coating':'Upgrade to active panel cleaning',f:x=>({...x,dustMit:x.dustMit+1}),note:'Slows the power loss from settling dust.'});
+  if(!c.redund) v.push({name:'Make computer and radio redundant',f:x=>({...x,redund:true}),note:'Cold spares add mass and cost.'});
+  v.push({name:'Use 1.5× more reliable parts',f:x=>({...x,mtbf:x.mtbf*1.5}),note:'Higher-grade, longer-tested components.'});
+  v.push({name:'Add 7 '+env.unit+'s of autonomy',f:x=>({...x,autonomy:x.autonomy+7}),note:'Onboard fault protection that can wait longer for contact.'});
+  return v.filter(x=>typeof x==='object');
+}
+
+async function runAll(){
+  if(busy){ pending=true; $('status').textContent='Will re-run with your changes when the current simulation finishes…'; return; }
+  busy=true; pending=false;
+  const cfg=readCfg(), runs=+$('runs').value, t0=performance.now();
+  const prog=$('prog'), st=$('status');
+  st.textContent='Simulating the baseline design…'; prog.style.width='4%'; await Lab.tick();
+  const base=simulate(cfg,env,runs,60);
+  renderBase(base,cfg);
+  const vs=variants(cfg), sensRuns=Math.min(runs,300), baseS=sensRuns===runs?base:simulate(cfg,env,sensRuns,0);
+  const res=[];
+  for(let i=0;i<vs.length;i++){
+    st.textContent=`Testing design change ${i+1} of ${vs.length}: ${vs[i].name.toLowerCase()}…`;
+    prog.style.width=(8+92*i/vs.length).toFixed(0)+'%'; await Lab.tick();
+    const c2=vs[i].f(cfg), r=simulate(c2,env,sensRuns,0);
+    const ml=x=>Array.from(x.lives).reduce((a,b)=>a+b,0)/x.runs;
+    res.push({...vs[i],cfg:c2,r,delta:r.surv-baseS.surv,lifeDelta:ml(r)-ml(baseS)});
+  }
+  res.sort((a,b)=>(b.delta-a.delta)||(b.lifeDelta-a.lifeDelta));
+  prog.style.width='100%';
+  const best=res[0]&&res[0].delta>0?simulate(res[0].cfg,env,runs,0):null;
+  renderSens(res,baseS); renderSurv(base,best,res[0]);
+  st.textContent=`Done: ${runs} missions plus ${vs.length} variants × ${sensRuns} in ${((performance.now()-t0)/1000).toFixed(1)} s.`;
+  setTimeout(()=>{prog.style.width='0';},600);
+  busy=false;
+  if(pending) runAll();
+}
+
+/* ---------------- rendering ---------------- */
+function medianLife(r){ const a=Array.from(r.lives).sort((x,y)=>x-y); return a[Math.floor(a.length/2)]; }
+function renderBase(r,cfg){
+  last=r;
+  const fails=Object.entries(r.tally).filter(([k])=>k!=='survived').sort((a,b)=>b[1]-a[1]);
+  const top=fails[0]&&fails[0][1]>0?CAUSES[fails[0][0]][0]:'none';
+  const med=medianLife(r);
+  const failedLives=Array.from(r.lives).filter((l,i)=>r.causes[i]!=='survived');
+  const meanFail=failedLives.length?failedLives.reduce((a,b)=>a+b,0)/failedLives.length:NaN;
+  $('stats').innerHTML=[
+    ['Mission success',pct(r.surv),`reached ${cfg.len} ${env.unit}s`, r.surv>=.8?'var(--good)':r.surv>=.5?'var(--warn)':'var(--alert)'],
+    ['Median lifetime',med>=cfg.len?`${cfg.len}+`:Math.round(med),env.unit+'s',''],
+    ['Leading failure',top,fails[0]&&fails[0][1]?pct(fails[0][1]/r.runs)+' of missions':'no failures',''],
+    ['Mean failure time',Number.isFinite(meanFail)?Math.round(meanFail):'—',failedLives.length?env.unit+'s, when a mission is lost':'nothing failed','']
+  ].map(s=>`<div class="stat"><div class="k">${s[0]}</div><div class="n" style="${s[3]?'color:'+s[3]:''};${String(s[1]).length>10?'font-size:17px':''}">${esc(s[1])}</div><div class="s">${esc(s[2])}</div></div>`).join('');
+  $('causes').innerHTML=Object.entries(r.tally).sort((a,b)=>(a[0]==='survived')-(b[0]==='survived')||b[1]-a[1]).filter(([k,v])=>v>0||k==='survived')
+    .map(([k,v])=>`<div class="cause"><span>${CAUSES[k][0]}</span><div class="bar"><i style="width:${(v/r.runs*100).toFixed(1)}%;background:${CAUSES[k][1]}"></i></div><span class="p">${pct(v/r.runs)}</span></div>`).join('');
+  renderTrace(r,cfg);
+}
+function linePath(pts){ return pts.map((p,i)=>(i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1)).join(''); }
+function curve(r,len,n){ const a=Array.from(r.lives).sort((x,y)=>x-y), out=[]; let j=0;
+  for(let i=0;i<=n;i++){ const t=len*i/n; while(j<a.length&&a[j]<t&&!(a[j]>=len))j++; out.push([t,(a.length-j)/a.length]); } return out; }
+function renderSurv(r,best,bestV){
+  const W=640,H=250,L=44,Rr=14,T=14,B=34, len=r.len;
+  const X=t=>L+(W-L-Rr)*t/len, Y=v=>T+(H-T-B)*(1-v);
+  let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Fraction of simulated missions still operating over time">`;
+  for(let i=0;i<=4;i++){ const v=i/4; s+=`<line x1="${L}" x2="${W-Rr}" y1="${Y(v)}" y2="${Y(v)}" stroke="rgba(150,168,210,.12)"/><text x="${L-8}" y="${Y(v)+4}" text-anchor="end" font-size="11" fill="#8a94ae">${v*100}%</text>`; }
+  const ticks=5; for(let i=0;i<=ticks;i++){ const t=Math.round(len*i/ticks); s+=`<text x="${X(t)}" y="${H-12}" text-anchor="middle" font-size="11" fill="#8a94ae">${t}</text>`; }
+  s+=`<text x="${W-Rr}" y="${H-12}" text-anchor="end" font-size="11" fill="#8a94ae" dy="0" opacity="0">${env.unit}</text>`;
+  const c=curve(r,len,200), pts=c.map(p=>[X(p[0]),Y(p[1])]);
+  s+=`<path d="${linePath(pts)}L${X(len)} ${Y(0)}L${X(0)} ${Y(0)}Z" fill="rgba(242,176,74,.1)"/>`;
+  if(best){ const cb=curve(best,len,200).map(p=>[X(p[0]),Y(p[1])]); s+=`<path d="${linePath(cb)}" fill="none" stroke="#6fd1a2" stroke-width="2" stroke-dasharray="6 4"/>`; }
+  s+=`<path d="${linePath(pts)}" fill="none" stroke="#f2b04a" stroke-width="2.4"/>`;
+  s+=`<line x1="${X(len)}" x2="${X(len)}" y1="${T}" y2="${H-B}" stroke="#8a94ae" stroke-dasharray="3 3"/>`;
+  const endV=r.surv; s+=`<circle cx="${X(len)}" cy="${Y(endV)}" r="4.5" fill="#f2b04a"/><text x="${X(len)-8}" y="${Y(endV)-9}" text-anchor="end" font-size="12" fill="#e6e9f2">${pct(endV)}</text>`;
+  if(best){ s+=`<circle cx="${X(len)}" cy="${Y(best.surv)}" r="4" fill="#6fd1a2"/><text x="${X(len)-8}" y="${Y(best.surv)+(best.surv>endV?-9:16)}" text-anchor="end" font-size="12" fill="#6fd1a2">${pct(best.surv)}</text>`; }
+  s+=`</svg>`;
+  $('survChart').innerHTML=s;
+  $('survTitle').textContent=` · ${env.unit}s on the horizontal axis`+(best&&bestV?` · dashed: ${bestV.name.toLowerCase()}`:'');
+}
+function renderTrace(r,cfg){
+  const failed=r.traces.filter(t=>t.cause!=='survived');
+  let tr;
+  if(failed.length){ const med=failed.map(t=>t.life).sort((a,b)=>a-b)[Math.floor(failed.length/2)]; tr=failed.reduce((a,b)=>Math.abs(b.life-med)<Math.abs(a.life-med)?b:a); }
+  else tr=r.traces[0];
+  if(!tr){ $('traceChart').innerHTML='<p class="empty">No trace recorded.</p>'; return; }
+  const n=tr.soc.length, W=640,H=270,L=44,Rr=44,T=12,B=30, mid=T+(H-T-B)*.48;
+  const X=i=>L+(W-L-Rr)*i/Math.max(1,n-1);
+  const Ys=v=>T+(mid-T-10)*(1-v);
+  const tLo=-80,tHi=60, Yt=v=>mid+8+(H-B-mid-8)*(1-(clamp(v,tLo,tHi)-tLo)/(tHi-tLo));
+  let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Battery charge and electronics temperature for one simulated mission">`;
+  tr.storm.forEach((st,i)=>{ if(st) s+=`<rect x="${X(i)}" y="${T}" width="${Math.max(1,(W-L-Rr)/n)}" height="${H-B-T}" fill="rgba(233,207,92,.08)"/>`; });
+  [0,.5,1].forEach(v=>{ s+=`<line x1="${L}" x2="${W-Rr}" y1="${Ys(v)}" y2="${Ys(v)}" stroke="rgba(150,168,210,.12)"/><text x="${L-8}" y="${Ys(v)+4}" text-anchor="end" font-size="11" fill="#8a94ae">${v*100}%</text>`; });
+  [-50,0,55].forEach(v=>{ s+=`<line x1="${L}" x2="${W-Rr}" y1="${Yt(v)}" y2="${Yt(v)}" stroke="${v===0?'rgba(150,168,210,.12)':'rgba(255,138,110,.35)'}" ${v===0?'':'stroke-dasharray="3 3"'}/><text x="${W-Rr+6}" y="${Yt(v)+4}" font-size="11" fill="#8a94ae">${v}°</text>`; });
+  s+=`<text x="${L}" y="${T+10}" font-size="11" fill="#f2b04a">Lowest battery charge each ${env.unit}</text>`;
+  s+=`<text x="${L}" y="${mid+20}" font-size="11" fill="#86b6ff">Electronics temperature range</text>`;
+  const top=[],bot=[]; for(let i=0;i<n;i++){ top.push([X(i),Yt(tr.tmax[i])]); bot.push([X(i),Yt(tr.tmin[i])]); }
+  s+=`<path d="${linePath(top)}${bot.reverse().map(p=>'L'+p[0].toFixed(1)+' '+p[1].toFixed(1)).join('')}Z" fill="rgba(134,182,255,.3)" stroke="#86b6ff" stroke-width="1"/>`;
+  s+=`<path d="${linePath(tr.soc.map((v,i)=>[X(i),Ys(v)]))}" fill="none" stroke="#f2b04a" stroke-width="1.8"/>`;
+  const step=Math.max(1,Math.round(n/5)); for(let i=0;i<n;i+=step) s+=`<text x="${X(i)}" y="${H-10}" text-anchor="middle" font-size="11" fill="#8a94ae">${i}</text>`;
+  if(tr.cause!=='survived'){ s+=`<line x1="${X(n-1)}" x2="${X(n-1)}" y1="${T}" y2="${H-B}" stroke="${CAUSES[tr.cause][1]}" stroke-width="1.5"/>`; }
+  s+='</svg>';
+  $('traceChart').innerHTML=s+`<p class="hint">${tr.cause==='survived'?'No sampled mission failed.':`Lost on ${env.unit} ${Math.round(tr.life)}: ${esc(CAUSES[tr.cause][0].toLowerCase())}, ${esc(tr.detail)}.`} Shaded bands are dust storms.</p>`;
+  $('traceTitle').textContent=tr.cause==='survived'?'':` · median-length failure`;
+}
+function renderSens(res,base){
+  const lifeMode=res.every(r=>Math.abs(r.delta)<.005);
+  const val=v=>lifeMode?v.lifeDelta/base.len:v.delta;
+  const maxAbs=Math.max(lifeMode?.01:.05,...res.map(r=>Math.abs(val(r))));
+  $('sens').innerHTML=res.map(v=>{
+    const d=val(v), w=Math.abs(d)/maxAbs*50;
+    // which failure cause moved most
+    let bestK=null,bestD=0; Object.keys(CAUSES).forEach(k=>{ if(k==='survived')return; const dd=(v.r.tally[k]-base.tally[k])/base.runs; if(Math.abs(dd)>Math.abs(bestD)){bestD=dd;bestK=k;} });
+    let why=`Survival ${pct(base.surv)} → ${pct(v.r.surv)}.`;
+    if(bestK&&Math.abs(bestD)>=.01) why+=` ${CAUSES[bestK][0]} ${bestD<0?'drops':'rises'} from ${pct(base.tally[bestK]/base.runs)} to ${pct(v.r.tally[bestK]/base.runs)} of missions.`;
+    else why+=' Failure mix barely changes.';
+    return `<li><span class="nm">${esc(v.name)}</span><div class="dbar"><i style="${d>=0?`left:50%;width:${w}%`:`right:50%;width:${w}%`};background:${d>=0?'var(--good)':'var(--alert)'}"></i></div><span class="dv ${d>.001?'up':d<-.001?'down':''}">${lifeMode?(v.lifeDelta>=0?'+':'−')+Math.abs(v.lifeDelta).toFixed(1)+' '+env.unit.slice(0,1):(d>=0?'+':'−')+Math.abs(d*100).toFixed(1)+' pp'}</span><span class="ex">${esc(why)} ${esc(v.note)}</span></li>`;
+  }).join('');
+  $('sensNote').hidden=!lifeMode;
+}
+
+envSel.onchange=()=>{ setEnv(envSel.value); runAll(); };
+$('btnRun').onclick=runAll;
+$('btnReset').onclick=()=>{ setCfg(DEFAULTS); runAll(); };
+setEnv('marsEq');
+runAll();
+})();
+</script>
+</body>
+</html>

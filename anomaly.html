@@ -1,0 +1,509 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="claude:viewport-fit-sides" content="cover">
+<title>Anomaly Hunter</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Michroma&display=swap">
+<link rel="stylesheet" href="lab.css">
+<style>
+.views{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-bottom:12px}
+.rank{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.rank li button{width:100%;display:grid;grid-template-columns:28px minmax(0,1fr) 64px;gap:4px 10px;align-items:center;text-align:left;background:none;border:1px solid var(--line);border-radius:8px;padding:9px 10px;cursor:pointer}
+.rank li button:hover{border-color:var(--line2)}
+.rank li button[aria-pressed="true"]{border-color:var(--sun);background:rgba(242,176,74,.06)}
+.rank .no{font:500 12px/1 var(--f-mono);color:var(--muted)}
+.rank .ty{font-size:13px;font-weight:500;overflow:hidden;text-overflow:ellipsis}
+.rank .cf{font:500 13px/1 var(--f-mono);text-align:right;font-variant-numeric:tabular-nums}
+.rank .meta{grid-column:2/4;font:400 11px/1.4 var(--f-mono);color:var(--muted)}
+.rank .bar{grid-column:2/4}
+.rank li.art button .ty{color:var(--muted);text-decoration:line-through;text-decoration-color:rgba(255,138,110,.6)}
+.detail dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:6px 12px;font-size:12.5px}
+.detail dt{color:var(--muted)} .detail dd{margin:0;text-align:right;font-family:var(--f-mono);font-size:12px;overflow-wrap:anywhere}
+.val li{display:flex;justify-content:space-between;gap:10px;font-size:12.5px;padding:5px 0;border-bottom:1px solid var(--line)}
+.val li:last-child{border-bottom:0}
+.val ul{list-style:none;margin:0;padding:0}
+</style>
+</head>
+<body>
+<nav class="nav"><div class="nav-in">
+  <a class="mark" href="index.html">SOLAR SYSTEM LAB</a>
+  <a class="tab" href="index.html">Orrery</a>
+  <a class="tab" href="anomaly.html" aria-current="page">Anomaly Hunter</a>
+  <a class="tab" href="mission.html">Mission Survival</a>
+  <a class="tab" href="landing.html">Landing Sites</a>
+  <a class="tab" href="discovery.html">Discovery Engine</a>
+</div></nav>
+
+<main class="wrap">
+  <div class="phead">
+    <div>
+      <div class="eyebrow">Tool 01 · Image change detection</div>
+      <h1>Planetary Anomaly Hunter</h1>
+      <p>Compares two images of the same patch of Mars, the Moon or an asteroid. It registers them, normalizes brightness, finds changes, screens out sensor artifacts, and ranks what is left with a confidence score. It also scans a single image for rare textures.</p>
+    </div>
+  </div>
+
+  <div class="layout">
+    <aside class="stack">
+      <div class="card">
+        <h2>Image source</h2>
+        <div class="seg" id="srcSeg" role="group" aria-label="Image source">
+          <button aria-pressed="true" data-src="sample">Sample pair</button>
+          <button aria-pressed="false" data-src="upload">Upload images</button>
+        </div>
+        <div id="sampleBox" style="margin-top:14px">
+          <p class="hint" style="margin-top:0">A synthetic Mars-like pair with known injected changes and one detector stripe, so you can check what the hunter finds against ground truth.</p>
+          <div class="btns" style="margin-top:10px"><button class="btn" id="btnNew">New sample</button></div>
+        </div>
+        <div id="uploadBox" hidden style="margin-top:14px">
+          <div class="field"><span class="flabel">Earlier image</span><input type="file" id="fileA" accept="image/*"></div>
+          <div class="field"><span class="flabel">Later image</span><input type="file" id="fileB" accept="image/*"></div>
+          <p class="hint">Both images must cover the same area at a similar scale. Offsets up to 8 pixels at working size are corrected automatically. Images are processed in your browser and never uploaded anywhere.</p>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Detection settings</h2>
+        <div class="field"><label for="sens">Detection threshold <output id="sensV">4.5 σ</output></label><input type="range" id="sens" min="3" max="7" step="0.25" value="4.5"></div>
+        <div class="field"><label for="minA">Minimum change size <output id="minAV">6 px</output></label><input type="range" id="minA" min="2" max="40" step="1" value="6"></div>
+        <div class="field"><label for="rareN">Rare-feature tile size <output id="rareNV">16 px</output></label><input type="range" id="rareN" min="8" max="32" step="4" value="16"></div>
+        <p class="hint">σ is a robust standard deviation of the difference image (median absolute deviation), so a few large changes do not inflate the noise estimate.</p>
+      </div>
+      <div class="card val" id="valCard">
+        <h2>Ground truth check</h2>
+        <ul id="valList"></ul>
+      </div>
+    </aside>
+
+    <div class="stack">
+      <div class="stats" id="stats"></div>
+      <div class="card">
+        <div class="views">
+          <div class="seg" id="viewSeg" role="group" aria-label="View">
+            <button aria-pressed="false" data-v="a">Earlier</button>
+            <button aria-pressed="true" data-v="b">Later (registered)</button>
+            <button aria-pressed="false" data-v="d">Difference</button>
+            <button aria-pressed="false" data-v="blink">Blink</button>
+          </div>
+          <label class="check"><input type="checkbox" id="showRare" checked> Show rare features</label>
+        </div>
+        <div class="viewport"><canvas id="view" width="640" height="640" aria-label="Image view with detected anomalies"></canvas></div>
+        <div class="legend" style="margin-top:10px">
+          <span><i style="background:var(--sun)"></i>Change candidate</span>
+          <span><i style="background:var(--cool)"></i>Rare texture</span>
+          <span><i style="background:var(--alert)"></i>Flagged artifact</span>
+          <span id="diffLegend" hidden><i style="background:#4f8dff"></i>Darker <i style="background:#ff9a3c;margin-left:8px"></i>Brighter</span>
+        </div>
+      </div>
+      <div class="row">
+        <div class="card">
+          <h2>Ranked anomalies</h2>
+          <ol class="rank" id="rank"></ol>
+        </div>
+        <div class="card detail" id="detail">
+          <h2>Selected</h2>
+          <div id="detailBody" class="empty">Select an anomaly to see why it was ranked where it is.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <p class="foot">Real imagery to try: <a href="https://www.uahirise.org/" target="_blank" rel="noopener">HiRISE (Mars)</a>, <a href="https://wms.lroc.asu.edu/lroc" target="_blank" rel="noopener">LROC (Moon)</a> and the <a href="https://pds-imaging.jpl.nasa.gov/" target="_blank" rel="noopener">PDS Imaging Node</a>. Download two map-projected images of the same site from different dates, crop them to the same area, and upload them here.</p>
+</main>
+
+<script src="lab.js"></script>
+<script>
+(function(){
+"use strict";
+const {$,clamp,rng,gauss,noise,median,mad,fmt,pct,esc}=Lab;
+const N=320;
+let src='sample', seed=7, view='b', blinkTimer=null, blinkOn=false;
+let data=null;     // {W,H,A,B,truth,stripeTruth,mound,names,scale}
+let result=null;   // analysis output
+let selected=null;
+
+/* ---------------- synthetic terrain ---------------- */
+function crater(h,alb,cx,cy,R,W,H){
+  const ext=Math.ceil(R*1.6);
+  for(let y=Math.max(1,Math.floor(cy-ext));y<Math.min(H-1,cy+ext);y++)
+  for(let x=Math.max(1,Math.floor(cx-ext));x<Math.min(W-1,cx+ext);x++){
+    const d=Math.hypot(x-cx,y-cy)/R, i=y*W+x;
+    if(d<1){ h[i]-=R*.42*(1-d*d); alb[i]-=.03*(1-d); }
+    h[i]+=R*.14*Math.exp(-Math.pow((d-1)/.16,2));
+  }
+}
+function render(h,alb,W,H){
+  const out=new Float32Array(W*H);
+  for(let y=0;y<H;y++) for(let x=0;x<W;x++){
+    const i=y*W+x, xl=x>0?i-1:i, xr=x<W-1?i+1:i, yu=y>0?i-W:i, yd=y<H-1?i+W:i;
+    const s=-((h[xr]-h[xl])*.7+(h[yd]-h[yu])*.55);
+    out[i]=clamp(.08+.84*alb[i]*(1+.5*s),0,1);
+  }
+  return out;
+}
+function makeSample(sd){
+  const W=N,H=N,r=rng(sd), n1=noise(sd+1,6,4), n2=noise(sd+2,5,6), n3=noise(sd+3,4,16);
+  const h=new Float32Array(W*H), alb=new Float32Array(W*H);
+  for(let y=0;y<H;y++) for(let x=0;x<W;x++){
+    const u=x/(W-1), v=y/(H-1), i=y*W+x;
+    h[i]=26*n1(u,v)+3*n3(u,v);
+    alb[i]=.5+.22*(n2(u,v)-.5);
+  }
+  const keep=[]; // regions kept clear for injected features
+  const far=(x,y,m)=>keep.every(k=>Math.hypot(k[0]-x,k[1]-y)>k[2]+m);
+  const pick=(m,pad)=>{ for(let t=0;t<400;t++){ const x=pad+r()*(W-2*pad), y=pad+r()*(H-2*pad); if(far(x,y,m)) return [x,y]; } return [W/2,H/2]; };
+  // rare layered mound (single image feature, present in both)
+  const [mx,my]=pick(30,40); keep.push([mx,my,30]);
+  for(let y=0;y<H;y++) for(let x=0;x<W;x++){
+    const d=Math.hypot(x-mx,y-my)/24; if(d<1){ const i=y*W+x; h[i]+=7*(1-d*d); alb[i]+=.15*Math.sin(d*36)*(1-d*.3); }
+  }
+  // stripe column reserved
+  const stripeX=Math.round(W*(.72+r()*.12)); keep.push([stripeX,-9999,0]);
+  // background craters
+  for(let k=0;k<70;k++){ const R=3+30*Math.pow(r(),3.2), x=r()*W, y=r()*H; if(Math.hypot(x-mx,y-my)>R+30) crater(h,alb,x,y,R,W,H); }
+
+  const h2=Float32Array.from(h), a2=Float32Array.from(alb), truth=[];
+  const colOk=(x,m)=>Math.abs(x-stripeX)>m;
+  let p;
+  do{ p=pick(18,30); }while(!colOk(p[0],16)); keep.push([p[0],p[1],18]);
+  crater(h2,a2,p[0],p[1],5.5,W,H); truth.push({x:p[0],y:p[1],r:8,label:'New impact crater'});
+  do{ p=pick(16,30); }while(!colOk(p[0],14)); keep.push([p[0],p[1],14]);
+  for(let y=0;y<H;y++) for(let x=0;x<W;x++){ const d2=(x-p[0])**2+(y-p[1])**2; if(d2<200) a2[y*W+x]-=.17*Math.exp(-d2/22); }
+  truth.push({x:p[0],y:p[1],r:7,label:'Dark blast zone'});
+  do{ p=pick(30,40); }while(!colOk(p[0],34)); keep.push([p[0],p[1],30]);
+  { const ang=Math.PI*(.35+r()*.3), L=44, x0=p[0]-Math.cos(ang)*L/2, y0=p[1]-Math.sin(ang)*L/2;
+    for(let y=0;y<H;y++) for(let x=0;x<W;x++){
+      const t=clamp(((x-x0)*Math.cos(ang)+(y-y0)*Math.sin(ang))/L,0,1), px=x0+Math.cos(ang)*L*t, py=y0+Math.sin(ang)*L*t, d=Math.hypot(x-px,y-py);
+      const wdt=1+2.2*t; if(d<wdt+1) a2[y*W+x]-=.13*clamp(wdt+1-d,0,1)*(t<.97?1:0);
+    }
+    truth.push({x:p[0],y:p[1],r:24,label:'Slope streak'}); }
+  { // dust-devil track, kept left of the stripe
+    const xs=20, xe=Math.min(stripeX-20,W*.62), y0=40+r()*(H-80), amp=10+r()*14, ph=r()*6;
+    for(let x=Math.floor(xs);x<xe;x++){ const yc=y0+amp*Math.sin(x/26+ph);
+      for(let y=Math.floor(yc-3);y<=yc+3;y++){ if(y<0||y>=H) continue; const d=Math.abs(y-yc); if(d<1.6) a2[y*W+x]-=.07*(1.6-d)/1.6+.02; } }
+    const mxx=(xs+xe)/2; truth.push({x:mxx,y:y0+amp*Math.sin(mxx/26+ph),r:(xe-xs)/2,label:'Dust-devil track',line:true}); }
+  do{ p=pick(12,30); }while(!colOk(p[0],10)); keep.push([p[0],p[1],10]);
+  for(let y=0;y<H;y++) for(let x=0;x<W;x++){ const d2=(x-p[0])**2+(y-p[1])**2; if(d2<60) a2[y*W+x]+=.28*Math.exp(-d2/7); }
+  truth.push({x:p[0],y:p[1],r:6,label:'Bright frost patch'});
+
+  const A0=render(h,alb,W,H), B0=render(h2,a2,W,H);
+  // second acquisition: brighter exposure, pointing offset, noise, a hot detector column
+  const sx=3,sy=-2, A=new Float32Array(W*H), B=new Float32Array(W*H);
+  for(let y=0;y<H;y++) for(let x=0;x<W;x++){
+    const i=y*W+x; A[i]=clamp(A0[i]+gauss(r)*.012,0,1);
+    const ox=x-sx, oy=y-sy, j=(clamp(oy,0,H-1))*W+clamp(ox,0,W-1);
+    B[i]=clamp(B0[j]*1.08-.03+gauss(r)*.012,0,1);
+  }
+  for(let y=0;y<H;y++) B[y*W+stripeX+sx]=clamp(B[y*W+stripeX+sx]+.26,0,1);
+  return {W,H,A,B,truth,stripeTruth:stripeX+sx,mound:{x:mx,y:my,r:24},names:['synthetic-earlier','synthetic-later'],scale:1,synthetic:true};
+}
+
+/* ---------------- analysis ---------------- */
+function normalize(a){ const m=Lab.mean(a), s=Lab.std(a,m)||1; const o=new Float32Array(a.length); for(let i=0;i<a.length;i++) o[i]=(a[i]-m)/s; return o; }
+function register(A,B,W,H,R){
+  let best=[0,0], bestE=Infinity; const m=R+2;
+  for(let dy=-R;dy<=R;dy++) for(let dx=-R;dx<=R;dx++){
+    let e=0,n=0;
+    for(let y=m;y<H-m;y+=2) for(let x=m;x<W-m;x+=2){ const d=B[(y+dy)*W+x+dx]-A[y*W+x]; e+=d*d; n++; }
+    e/=n; if(e<bestE){ bestE=e; best=[dx,dy]; }
+  }
+  return best;
+}
+function box3(a,W,H){ const o=new Float32Array(a.length);
+  for(let y=0;y<H;y++) for(let x=0;x<W;x++){ let s=0,n=0;
+    for(let j=-1;j<=1;j++) for(let i=-1;i<=1;i++){ const xx=x+i,yy=y+j; if(xx>=0&&yy>=0&&xx<W&&yy<H){ s+=a[yy*W+xx]; n++; } }
+    o[y*W+x]=s/n; } return o; }
+
+function analyze(){
+  const {W,H}=data, t0=performance.now();
+  const T=+$('sens').value, minA=+$('minA').value;
+  const An=normalize(data.A), Bn=normalize(data.B);
+  const [dx,dy]=register(An,Bn,W,H,8);
+  const margin=Math.max(Math.abs(dx),Math.abs(dy))+2;
+  const Breg=new Float32Array(W*H), valid=new Uint8Array(W*H);
+  for(let y=0;y<H;y++) for(let x=0;x<W;x++){ const xx=x+dx, yy=y+dy;
+    if(xx>=0&&yy>=0&&xx<W&&yy<H){ Breg[y*W+x]=Bn[yy*W+xx]; if(x>=margin&&y>=margin&&x<W-margin&&y<H-margin) valid[y*W+x]=1; } }
+  // saturation screen: clipped pixels cannot show real brightness changes
+  let satCount=0;
+  for(let y=0;y<H;y++) for(let x=0;x<W;x++){ const i=y*W+x; if(!valid[i]) continue; const xx=x+dx, yy=y+dy, a=data.A[i], b=data.B[yy*W+xx];
+    if(a<.015||a>.985||b<.015||b>.985){ for(let j=-1;j<=1;j++) for(let k=-1;k<=1;k++){ const q2=(y+j)*W+x+k; if(q2>=0&&q2<W*H) valid[q2]=0; } satCount++; } }
+  // fit gain/offset of later image to earlier (robust to brightness/exposure changes)
+  let sa=0,sb=0,sab=0,sbb=0,n=0;
+  for(let i=0;i<W*H;i++) if(valid[i]){ sa+=An[i]; sb+=Breg[i]; sab+=An[i]*Breg[i]; sbb+=Breg[i]*Breg[i]; n++; }
+  const g=(sab-sa*sb/n)/(sbb-sb*sb/n||1), off=(sa-g*sb)/n;
+  const D=new Float32Array(W*H); for(let i=0;i<W*H;i++) D[i]=valid[i]?(g*Breg[i]+off)-An[i]:0;
+  const Ds=box3(D,W,H);
+  const vals=[]; for(let i=0;i<W*H;i++) if(valid[i]) vals.push(Ds[i]);
+  const med=median(vals), sig=1.4826*mad(vals,med)||1e-6;
+  const Z=new Float32Array(W*H); for(let i=0;i<W*H;i++) Z[i]=valid[i]?(Ds[i]-med)/sig:0;
+
+  // artifact screen: whole columns / rows that shifted together (detector stripes, readout banding)
+  const artifacts=[], masked=new Uint8Array(W*H);
+  const lineScan=(isCol)=>{
+    const L=isCol?W:H, M=isCol?H:W;
+    for(let a=0;a<L;a++){ let s=0,c=0,hi=0;
+      for(let b=0;b<M;b++){ const i=isCol?b*W+a:a*W+b; if(valid[i]){ s+=Z[i]; c++; if(Math.abs(Z[i])>T*.6) hi++; } }
+      if(c>M*.5 && hi/c>.6 && Math.abs(s/c)>T*.55){
+        for(let b=0;b<M;b++){ for(let k=-1;k<=1;k++){ const aa=a+k; if(aa<0||aa>=L) continue; masked[isCol?b*W+aa:aa*W+b]=1; } }
+        const last=artifacts[artifacts.length-1];
+        if(last&&last.isCol===isCol&&a-last.pos<=2){ last.pos2=a; continue; }
+        artifacts.push({isCol,pos:a,pos2:a,mean:s/c,frac:hi/c});
+      } }
+  };
+  lineScan(true); lineScan(false);
+
+  // hysteresis segmentation
+  const lab=new Int32Array(W*H), comps=[]; const lo=T*.6; let id=0; const q=new Int32Array(W*H);
+  for(let i=0;i<W*H;i++){
+    if(lab[i]||!valid[i]||masked[i]||Math.abs(Z[i])<T) continue;
+    id++; let qh=0,qt=0; q[qt++]=i; lab[i]=id;
+    const c={id,px:[],sum:0,pos:0,neg:0,peak:0,x0:W,y0:H,x1:0,y1:0,edge:false};
+    while(qh<qt){ const k=q[qh++], x=k%W, y=(k-x)/W; c.px.push(k);
+      const z=Z[k]; c.sum+=z; if(z>lo)c.pos++; if(z<-lo)c.neg++; c.peak=Math.max(c.peak,Math.abs(z));
+      if(x<c.x0)c.x0=x; if(y<c.y0)c.y0=y; if(x>c.x1)c.x1=x; if(y>c.y1)c.y1=y;
+      if(x<=margin+1||y<=margin+1||x>=W-margin-2||y>=H-margin-2) c.edge=true;
+      for(let j=-1;j<=1;j++) for(let ii=-1;ii<=1;ii++){ const xx=x+ii,yy=y+j; if(xx<0||yy<0||xx>=W||yy>=H) continue; const kk=yy*W+xx;
+        if(!lab[kk]&&valid[kk]&&!masked[kk]&&Math.abs(Z[kk])>=lo){ lab[kk]=id; q[qt++]=kk; } } }
+    comps.push(c);
+  }
+  // merge nearby fragments of the same feature (gaps along faint tracks)
+  const near=(a,b)=>!(a.x1+4<b.x0||b.x1+4<a.x0||a.y1+4<b.y0||b.y1+4<a.y0);
+  let merged=true; while(merged){ merged=false;
+    for(let i=0;i<comps.length&&!merged;i++) for(let j=i+1;j<comps.length&&!merged;j++){
+      const a=comps[i], b=comps[j]; if(!near(a,b)) continue;
+      if(Math.sign(a.sum)!==Math.sign(b.sum)&&a.pos&&b.pos&&a.neg&&b.neg) continue;
+      let close=false; const bs=new Set(b.px);
+      outer: for(const k of a.px){ const x=k%W,y=(k-x)/W; for(let j2=-4;j2<=4;j2++) for(let i2=-4;i2<=4;i2++){ if(bs.has((y+j2)*W+x+i2)){ close=true; break outer; } } }
+      if(!close) continue;
+      a.px=a.px.concat(b.px); a.sum+=b.sum; a.pos+=b.pos; a.neg+=b.neg; a.peak=Math.max(a.peak,b.peak);
+      a.x0=Math.min(a.x0,b.x0); a.y0=Math.min(a.y0,b.y0); a.x1=Math.max(a.x1,b.x1); a.y1=Math.max(a.y1,b.y1); a.edge=a.edge||b.edge;
+      comps.splice(j,1); merged=true; } }
+
+  const items=[];
+  for(const c of comps){
+    const area=c.px.length; if(area<minA) continue;
+    let mx=0,my=0; for(const k of c.px){ mx+=k%W; my+=Math.floor(k/W); } mx/=area; my/=area;
+    let sxx=0,syy=0,sxy=0; for(const k of c.px){ const x=k%W-mx, y=Math.floor(k/W)-my; sxx+=x*x; syy+=y*y; sxy+=x*y; }
+    sxx/=area; syy/=area; sxy/=area;
+    const tr=sxx+syy, det=sxx*syy-sxy*sxy, l1=tr/2+Math.sqrt(Math.max(0,tr*tr/4-det)), l2=Math.max(.25,tr/2-Math.sqrt(Math.max(0,tr*tr/4-det)));
+    const elong=Math.sqrt(l1/l2), length=4*Math.sqrt(l1);
+    const meanZ=c.sum/area, posF=c.pos/area, negF=c.neg/area;
+    let type, why;
+    if(posF>.2&&negF>.2){ type='Topographic change'; why='paired brightening and darkening, the signature of new relief catching light on one side and casting shadow on the other (possible new crater or slump)'; }
+    else if(meanZ<0&&elong>3.2&&length>70){ type='Long dark track'; why='a long, thin, darker line, typical of a dust-devil track or rover-scale disturbance'; }
+    else if(meanZ<0&&elong>2.6&&length>18){ type='Dark streak'; why='an elongated darker feature that tapers, consistent with a slope streak or recurring slope lineae'; }
+    else if(meanZ<0){ type='New dark spot'; why='a compact darkening, consistent with a fresh impact blast zone or exposed darker material'; }
+    else if(elong>3){ type='Bright streak'; why='an elongated brightening'; }
+    else { type='New bright spot'; why='a compact brightening, consistent with frost, fresh ice or a high-albedo exposure'; }
+    const flags=[]; let art=0;
+    if(c.edge){ flags.push('touches the overlap edge, where registration error is largest'); art+=.45; }
+    if(area<10&&c.peak<T+1.5){ flags.push('very small and weak, could be noise'); art+=.35; }
+    if(elong>18&&(c.x1-c.x0<=3||c.y1-c.y0<=3)){ flags.push('one pixel wide and perfectly straight, like a detector defect'); art+=.6; }
+    const strength=1/(1+Math.exp(-(.8*(c.peak-T)+.55*Math.log(area/minA))));
+    const conf=clamp(strength*(1-Math.min(.9,art)),0,1);
+    items.push({kind:'change',type,why,conf,area,peak:c.peak,meanZ,elong,length,x:mx,y:my,box:[c.x0,c.y0,c.x1,c.y1],flags,artifact:art>=.6});
+  }
+  for(const a of artifacts){
+    const w=a.pos2-a.pos+1;
+    items.push({kind:'artifact',type:a.isCol?'Detector column stripe':'Detector row stripe',why:`${w} ${a.isCol?'column':'row'}${w>1?'s':''} changed by the same amount along ${pct(a.frac)} of the image. Real surface changes do not follow the sensor grid, so this was masked before detection.`,
+      conf:0,x:a.isCol?a.pos:W/2,y:a.isCol?H/2:a.pos,box:a.isCol?[a.pos-1,margin,a.pos2+1,H-margin]:[margin,a.pos-1,W-margin,a.pos2+1],flags:['aligned with the sensor grid'],artifact:true,line:a.isCol?'col':'row',pos:a.pos,meanZ:a.mean});
+  }
+
+  // rare textures in the earlier image
+  const rare=rareFeatures(An,W,H,+$('rareN').value);
+
+  items.sort((a,b)=>(b.artifact?-1:b.conf)-(a.artifact?-1:a.conf));
+  result={satCount,dx,dy,gain:g,offset:off,sigma:sig,Z,Breg,An,items,rare,ms:performance.now()-t0,margin};
+}
+
+function rareFeatures(A,W,H,T){
+  const tiles=[], nx=Math.floor(W/T), ny=Math.floor(H/T);
+  const sorted=Float32Array.from(A).sort(), p5=sorted[Math.floor(A.length*.05)], lo=sorted[Math.floor(A.length*.01)], hi=sorted[Math.floor(A.length*.99)];
+  for(let ty=0;ty<ny;ty++) for(let tx=0;tx<nx;tx++){
+    let s=0,s2=0,ge=0,jxx=0,jyy=0,jxy=0,dark=0,osc=0; const hist=new Float32Array(8); const n=T*T;
+    for(let y=ty*T;y<ty*T+T;y++) for(let x=tx*T;x<tx*T+T;x++){
+      const i=y*W+x, v=A[i]; s+=v; s2+=v*v; if(v<p5) dark++;
+      hist[clamp(Math.floor((v-lo)/(hi-lo+1e-9)*8),0,7)]++;
+      if(x>0&&y>0&&x<W-1&&y<H-1){ const gx=(A[i+1]-A[i-1])/2, gy=(A[i+W]-A[i-W])/2; ge+=Math.hypot(gx,gy); jxx+=gx*gx; jyy+=gy*gy; jxy+=gx*gy;
+        const lx=A[i]-(A[i-1]+A[i+1])/2, ly=A[i]-(A[i-W]+A[i+W])/2;
+        if((A[i]-A[i-1])*(A[i+1]-A[i])<0&&Math.abs(lx)>.25) osc++;
+        if((A[i]-A[i-W])*(A[i+W]-A[i])<0&&Math.abs(ly)>.25) osc++; }
+    }
+    const m=s/n, sd=Math.sqrt(Math.max(0,s2/n-m*m));
+    let ent=0; for(const h of hist){ if(h>0){ const p=h/n; ent-=p*Math.log2(p); } }
+    const coh=(jxx+jyy)>0?Math.sqrt((jxx-jyy)**2+4*jxy*jxy)/(jxx+jyy):0;
+    tiles.push({tx,ty,f:[m,sd,ge/n,coh,ent,dark/n,osc/n]});
+  }
+  const names=['brightness','contrast','relief roughness','texture alignment','texture complexity','dark-pixel share','fine banding'];
+  const F=names.length, med=[], sc=[];
+  for(let k=0;k<F;k++){ const col=tiles.map(t=>t.f[k]); med[k]=median(col); sc[k]=1.4826*mad(col,med[k])||Lab.std(col)||1; }
+  for(const t of tiles){ t.z=t.f.map((v,k)=>(v-med[k])/sc[k]); t.zc=t.z.map(z=>Math.sign(z)*Math.log1p(Math.abs(z))); }
+  // density-based rarity: mean distance to the K most similar tiles elsewhere in the image
+  const K=6, sep=3;
+  for(const t of tiles){
+    const ds=[];
+    for(const u of tiles){ if(Math.abs(u.tx-t.tx)<sep&&Math.abs(u.ty-t.ty)<sep) continue; let d=0; for(let k=0;k<F;k++){ const e=t.zc[k]-u.zc[k]; d+=e*e; } ds.push(Math.sqrt(d)); }
+    ds.sort((a,b)=>a-b); let m2=0; for(let k=0;k<K&&k<ds.length;k++) m2+=ds[k]; t.knn=m2/Math.min(K,ds.length||1);
+  }
+  const kmed=median(tiles.map(t=>t.knn)), kmad=1.4826*mad(tiles.map(t=>t.knn),kmed)||1;
+  for(const t of tiles) t.score=(t.knn-kmed)/kmad;
+  tiles.sort((a,b)=>b.score-a.score);
+  const out=[];
+  for(const t of tiles){
+    if(out.length>=5||t.score<2.5) break;
+    if(out.some(o=>Math.abs(o.tx-t.tx)<=2&&Math.abs(o.ty-t.ty)<=2)) continue;
+    const drivers=t.z.map((z,k)=>({z,k})).sort((a,b)=>Math.abs(b.z)-Math.abs(a.z)).slice(0,2)
+      .map(d=>`${d.z>0?'high':'low'} ${names[d.k]} (${d.z>0?'+':'−'}${Math.abs(d.z).toFixed(1)}σ)`);
+    let hintTxt='unusual texture worth a closer look';
+    if(t.z[6]>3) hintTxt='repeating fine bands: layered deposits, ripples or terraces';
+    else if(t.z[3]>3) hintTxt='strongly aligned texture: layering, dunes, ridges or fractures';
+    else if(t.z[0]<-3&&t.z[1]>2) hintTxt='dark, high-contrast pocket: pit, crater interior or dark deposit';
+    else if(t.z[0]>3) hintTxt='unusually bright material';
+    else if(t.z[1]<-2.5) hintTxt='unusually smooth surface';
+    out.push({kind:'rare',type:'Rare texture',why:hintTxt,drivers,conf:clamp(1/(1+Math.exp(-(t.score-5)*.7)),0,1),score:t.score,
+      x:(t.tx+.5)*T,y:(t.ty+.5)*T,box:[t.tx*T,t.ty*T,t.tx*T+T-1,t.ty*T+T-1],tx:t.tx,ty:t.ty});
+  }
+  return out;
+}
+
+/* ---------------- drawing ---------------- */
+const cv=$('view'), ctx=cv.getContext('2d'), base=document.createElement('canvas'), bctx=base.getContext('2d');
+function grayToImage(arr,W,H,stretch){
+  let lo=0,hi=1; if(stretch){ const s=Float32Array.from(arr).sort(); lo=s[Math.floor(s.length*.005)]; hi=s[Math.floor(s.length*.995)]; }
+  const img=bctx.createImageData(W,H);
+  for(let i=0;i<W*H;i++){ const v=clamp((arr[i]-lo)/(hi-lo||1),0,1)*255; img.data[i*4]=img.data[i*4+1]=img.data[i*4+2]=v; img.data[i*4+3]=255; }
+  return img;
+}
+function diffImage(){
+  const {W,H}=data, img=bctx.createImageData(W,H), Z=result.Z, A=result.An;
+  for(let i=0;i<W*H;i++){
+    const g=clamp(60+A[i]*22,0,255)*.55, z=clamp(Z[i]/6,-1,1), t=Math.abs(z);
+    const c=z<0?[79,141,255]:[255,154,60];
+    img.data[i*4]=g*(1-t)+c[0]*t; img.data[i*4+1]=g*(1-t)+c[1]*t; img.data[i*4+2]=g*(1-t)+c[2]*t; img.data[i*4+3]=255;
+  }
+  return img;
+}
+function draw(){
+  if(!data||!result) return;
+  const {W,H}=data; base.width=W; base.height=H;
+  const showB = view==='b' || (view==='blink'&&blinkOn);
+  let img;
+  if(view==='d') img=diffImage();
+  else img=grayToImage(showB?result.Breg:result.An,W,H,true);
+  bctx.putImageData(img,0,0);
+  const S=Math.round(Math.min(900,Math.max(560,W*2))/W*100)/100;
+  cv.width=Math.round(W*S); cv.height=Math.round(H*S);
+  ctx.imageSmoothingEnabled=true; ctx.drawImage(base,0,0,cv.width,cv.height);
+  $('diffLegend').hidden=view!=='d';
+  if(view==='blink'){ ctx.fillStyle='rgba(5,7,13,.7)'; ctx.fillRect(8,8,92,24); ctx.fillStyle='#e6e9f2'; ctx.font='500 12px "IBM Plex Mono",monospace'; ctx.fillText(blinkOn?'LATER':'EARLIER',18,24); }
+  const all=result.items.concat($('showRare').checked?result.rare:[]);
+  ctx.lineWidth=1.5; ctx.font='500 12px "IBM Plex Mono",monospace';
+  all.forEach(it=>{
+    const col=it.artifact?'#ff8a6e':it.kind==='rare'?'#86b6ff':'#f2b04a';
+    const sel=selected===it, pad=4;
+    const [x0,y0,x1,y1]=it.box;
+    ctx.strokeStyle=col; ctx.globalAlpha=sel?1:.85; ctx.lineWidth=sel?2.5:1.4;
+    ctx.setLineDash(it.kind==='rare'?[5,4]:it.artifact?[2,3]:[]);
+    ctx.strokeRect(x0*S-pad,y0*S-pad,(x1-x0+1)*S+pad*2,(y1-y0+1)*S+pad*2);
+    ctx.setLineDash([]);
+    const lab=it.rank?String(it.rank):'';
+    if(lab){ const tw=ctx.measureText(lab).width+8; const lx=Math.max(0,x0*S-pad), ly=Math.max(0,y0*S-pad-17);
+      ctx.fillStyle=col; ctx.fillRect(lx,ly,tw,16); ctx.fillStyle='#0a0f1b'; ctx.fillText(lab,lx+4,ly+12); }
+  });
+  ctx.globalAlpha=1;
+}
+
+/* ---------------- UI ---------------- */
+function renderAll(){
+  const items=result.items.concat(result.rare);
+  let r=1; result.items.forEach(it=>{ it.rank=it.artifact?null:r++; }); result.rare.forEach(it=>{ it.rank='R'+(result.rare.indexOf(it)+1); });
+  const changes=result.items.filter(i=>!i.artifact), arts=result.items.filter(i=>i.artifact);
+  $('stats').innerHTML=[
+    ['Change candidates',changes.length,`${changes.filter(c=>c.conf>=.6).length} above 60% confidence`],
+    ['Artifacts screened',arts.length,`${result.satCount} saturated px masked`],
+    ['Rare textures',result.rare.length,'in the earlier image'],
+    ['Registration',`${result.dx>=0?'+':''}${result.dx}, ${result.dy>=0?'+':''}${result.dy}`,`px offset · gain ${fmt(result.gain,2)} · ${Math.round(result.ms)} ms`]
+  ].map(s=>`<div class="stat"><div class="k">${s[0]}</div><div class="n">${s[1]}</div><div class="s">${s[2]}</div></div>`).join('');
+  const list=$('rank');
+  if(!items.length){ list.innerHTML='<li class="empty">Nothing crossed the threshold. Lower it to see weaker changes.</li>'; }
+  else list.innerHTML=items.map((it,i)=>{
+    const meta=it.kind==='rare'?`score ${fmt(it.score,1)} · (${Math.round(it.x*data.scale)}, ${Math.round(it.y*data.scale)})`
+      : it.kind==='artifact'?`masked · ${it.line==='col'?'column':'row'} ${Math.round(it.pos*data.scale)}`
+      : `peak ${fmt(it.peak,1)}σ · ${it.area} px · (${Math.round(it.x*data.scale)}, ${Math.round(it.y*data.scale)})`;
+    return `<li class="${it.artifact?'art':''}"><button data-i="${i}" aria-pressed="${selected===it}"><span class="no">${it.rank||'×'}</span><span class="ty">${esc(it.type)}</span><span class="cf">${it.artifact?'—':pct(it.conf)}</span>${it.artifact?'':`<span class="bar"><i style="width:${(it.conf*100).toFixed(0)}%;background:${it.kind==='rare'?'var(--cool)':'var(--sun)'}"></i></span>`}<span class="meta">${meta}</span></button></li>`;
+  }).join('');
+  [...list.querySelectorAll('button')].forEach(b=>b.onclick=()=>{ selected=items[+b.dataset.i]; renderAll(); showDetail(); });
+  validate();
+  draw();
+}
+function showDetail(){
+  const it=selected; if(!it){ $('detailBody').className='empty'; $('detailBody').textContent='Select an anomaly to see why it was ranked where it is.'; return; }
+  const rows=[];
+  rows.push(['Type',it.type]);
+  if(it.kind!=='artifact') rows.push(['Confidence',pct(it.conf)]);
+  if(it.kind==='change'){ rows.push(['Peak signal',fmt(it.peak,2)+' σ'],['Mean signal',(it.meanZ>0?'+':'−')+fmt(Math.abs(it.meanZ),2)+' σ'],['Area',it.area+' px'],['Elongation',fmt(it.elong,1)+' : 1'],['Length',fmt(it.length,0)+' px']); }
+  if(it.kind==='rare'){ rows.push(['Rarity score',fmt(it.score,2)],['Driven by',it.drivers.join('; ')]); }
+  rows.push(['Location (source px)',`x ${Math.round(it.x*data.scale)}, y ${Math.round(it.y*data.scale)}`]);
+  rows.push(['Source',data.synthetic?`synthetic pair, seed ${seed}`:esc(data.names.join(' → '))]);
+  $('detailBody').className='';
+  $('detailBody').innerHTML=`<dl>${rows.map(r=>`<dt>${r[0]}</dt><dd>${esc(r[1])}</dd>`).join('')}</dl>
+    <p class="hint">${it.kind==='artifact'?esc(it.why):'Reads as '+esc(it.why)+'.'}</p>
+    ${it.flags&&it.flags.length&&it.kind!=='artifact'?`<p class="hint" style="color:var(--alert)">Artifact checks: ${esc(it.flags.join('; '))}.</p>`:''}
+    ${data.synthetic?'':'<p class="hint">Go back to the archive product for these coordinates to check incidence angle, season and processing level before drawing conclusions.</p>'}`;
+}
+function validate(){
+  const card=$('valCard'); card.hidden=!data.synthetic; if(!data.synthetic) return;
+  const changes=result.items.filter(i=>!i.artifact);
+  const rows=data.truth.map(t=>{
+    const hit=changes.find(c=>{ if(t.line) return c.box[0]<=t.x+t.r&&c.box[2]>=t.x-t.r&&Math.abs(c.y-t.y)<40&&c.length>40; return Math.hypot(c.x-t.x,c.y-t.y)<t.r+12; });
+    return [t.label,hit?`found · #${hit.rank} · ${pct(hit.conf)}`:'missed',!!hit];
+  });
+  const st=result.items.find(i=>i.artifact&&i.line==='col'&&Math.abs(i.pos-(data.stripeTruth-result.dx))<=3);
+  rows.push(['Detector stripe',st?'masked as artifact':'not caught',!!st]);
+  const m=data.mound, rr=result.rare.findIndex(t=>Math.hypot(t.x-m.x,t.y-m.y)<m.r+10);
+  rows.push(['Layered mound (rare)',rr>=0?`found · R${rr+1}`:'missed',rr>=0]);
+  const fp=changes.filter(c=>!data.truth.some(t=>t.line? (c.box[0]<=t.x+t.r&&c.box[2]>=t.x-t.r&&Math.abs(c.y-t.y)<40) : Math.hypot(c.x-t.x,c.y-t.y)<t.r+14)).length;
+  rows.push(['False alarms',String(fp),fp===0]);
+  $('valList').innerHTML=rows.map(r=>`<li><span>${esc(r[0])}</span><span class="pill ${r[2]?'good':'bad'}">${esc(r[1])}</span></li>`).join('');
+}
+
+async function run(){
+  if(!data) return;
+  analyze(); selected=null; showDetail(); renderAll();
+}
+function loadSample(){ data=makeSample(seed); run(); }
+
+[...$('srcSeg').children].forEach(b=>b.onclick=()=>{
+  src=b.dataset.src; [...$('srcSeg').children].forEach(c=>c.setAttribute('aria-pressed',c===b));
+  $('sampleBox').hidden=src!=='sample'; $('uploadBox').hidden=src!=='upload';
+  if(src==='sample') loadSample(); else tryUpload();
+});
+$('btnNew').onclick=()=>{ seed=Math.floor(Math.random()*1e6); loadSample(); };
+let imgA=null,imgB=null;
+async function tryUpload(){
+  try{
+    if($('fileA').files[0]) imgA=await Lab.loadImage($('fileA').files[0]);
+    if($('fileB').files[0]) imgB=await Lab.loadImage($('fileB').files[0]);
+  }catch(e){ $('rank').innerHTML=`<li class="empty">${esc(e.message)}</li>`; return; }
+  if(!imgA||!imgB){ $('rank').innerHTML='<li class="empty">Choose both an earlier and a later image to compare.</li>'; return; }
+  const a=Lab.toGray(imgA,400), b=Lab.toGray(imgB,400,a.w,a.h);
+  data={W:a.w,H:a.h,A:a.data,B:b.data,truth:[],names:[$('fileA').files[0].name,$('fileB').files[0].name],scale:a.scale,synthetic:false};
+  run();
+}
+$('fileA').onchange=tryUpload; $('fileB').onchange=tryUpload;
+const bindOut=(id,fmtFn)=>{ const el=$(id), o=$(id+'V'); el.addEventListener('input',()=>{ o.textContent=fmtFn(+el.value); }); el.addEventListener('change',run); };
+bindOut('sens',v=>v.toFixed(2).replace(/0$/,'')+' σ'); bindOut('minA',v=>v+' px'); bindOut('rareN',v=>v+' px');
+$('showRare').onchange=draw;
+[...$('viewSeg').children].forEach(b=>b.onclick=()=>{
+  view=b.dataset.v; [...$('viewSeg').children].forEach(c=>c.setAttribute('aria-pressed',c===b));
+  clearInterval(blinkTimer); blinkTimer=null;
+  if(view==='blink'){ blinkOn=true; blinkTimer=setInterval(()=>{ blinkOn=!blinkOn; draw(); },700); }
+  draw();
+});
+loadSample();
+})();
+</script>
+</body>
+</html>

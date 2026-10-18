@@ -112,6 +112,10 @@ dd small{color:var(--muted);font-size:10.5px}
 .log li .t-retro{color:var(--alert)} .log li .t-peri{color:var(--sun)} .log li .t-aph{color:var(--cool)} .log li .t-dir{color:var(--good)}
 .empty{font-size:12px;color:var(--muted);line-height:1.5}
 
+.lab{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
+.lab a{font:500 11px/1 var(--f-mono);color:var(--muted);text-decoration:none;padding:7px 8px;border:1px solid var(--line);border-radius:6px;white-space:nowrap}
+.lab a:hover{color:var(--fg);border-color:rgba(242,176,74,.6)}
+.lab span{font:400 10.5px/1 var(--f-mono);color:var(--muted);letter-spacing:.1em;margin-right:4px}
 @media (max-width:820px){
   .ui{display:flex;flex-direction:column;gap:8px}
   .bar{gap:8px 14px;padding:9px 12px;align-self:stretch}
@@ -137,7 +141,7 @@ dd small{color:var(--muted);font-size:10.5px}
 
 <div class="ui">
   <header class="bar glass">
-    <div class="brand"><b>KEPLER ORRERY</b><span>J2000 elements · Kepler solver</span></div>
+    <div class="brand"><b>KEPLER ORRERY</b><span>Solar System Lab · J2000 elements</span></div>
     <div class="clock"><div class="date" id="date">—</div><div class="jd" id="jd">JD —</div></div>
     <div class="transport">
       <button class="ib" id="btnRev" aria-pressed="false" title="Run time backwards" aria-label="Reverse time"><svg viewBox="0 0 16 16"><path d="M8 3v10L1 8zM15 3v10L8 8z"/></svg></button>
@@ -146,6 +150,7 @@ dd small{color:var(--muted);font-size:10.5px}
       <div class="speeds" id="speeds" role="group" aria-label="Simulation speed"></div>
       <span class="unit">per second</span>
     </div>
+    <nav class="lab" aria-label="Lab tools"><span>LAB</span><a href="anomaly.html">Anomaly Hunter</a><a href="mission.html">Mission Survival</a><a href="landing.html">Landing Sites</a><a href="discovery.html">Discovery Engine</a></nav>
   </header>
 
   <nav class="planets glass" id="plist" aria-label="Planets"></nav>

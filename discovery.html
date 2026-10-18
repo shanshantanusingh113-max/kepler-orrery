@@ -1,0 +1,445 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="claude:viewport-fit-sides" content="cover">
+<title>Discovery Engine</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Michroma&display=swap">
+<link rel="stylesheet" href="lab.css">
+<style>
+.matrix td,.matrix th{text-align:center}
+.matrix th:first-child,.matrix td:first-child{text-align:left}
+.cell{display:inline-flex;flex-direction:column;align-items:center;gap:2px;min-width:64px;padding:4px 6px;border-radius:6px;font:500 12px/1.2 var(--f-mono)}
+.cell small{font-size:10px;color:var(--muted);font-weight:400}
+.finding{border:1px solid var(--line);border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:12px;background:var(--surface)}
+.finding header{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px 16px;align-items:flex-start}
+.finding h3{margin:0;font-size:15.5px;font-weight:600;text-transform:none;letter-spacing:0;color:var(--fg);font-family:var(--f-body);text-wrap:balance}
+.finding .sum{margin:0;color:var(--muted);font-size:13px;max-width:80ch}
+.finding .kind{font:500 10.5px/1 var(--f-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.tests{width:100%;font-size:12.5px}
+.tests td{white-space:normal;vertical-align:top}
+.tests td:first-child{white-space:nowrap;color:var(--muted);width:1%}
+.tests td:nth-child(2){width:1%;white-space:nowrap}
+.q{border-left:2px solid var(--sun);padding:6px 0 6px 12px;font-size:13.5px}
+.q b{font:500 10.5px/1 var(--f-mono);letter-spacing:.12em;color:var(--sun);display:block;margin-bottom:5px}
+.qs{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:10px;font-size:13.5px}
+.qs li::marker{font-family:var(--f-mono);color:var(--muted)}
+.qs .tag{font:500 10.5px/1 var(--f-mono);margin-left:6px}
+.chart svg{width:100%;height:auto;display:block}
+pre.tpl{margin:8px 0 0;padding:10px;border:1px solid var(--line);border-radius:7px;background:var(--surface2);font:400 11px/1.5 var(--f-mono);white-space:pre;overflow-x:auto;color:var(--fg)}
+.fgrid{display:flex;flex-direction:column;gap:14px}
+</style>
+</head>
+<body>
+<nav class="nav"><div class="nav-in">
+  <a class="mark" href="index.html">SOLAR SYSTEM LAB</a>
+  <a class="tab" href="index.html">Orrery</a>
+  <a class="tab" href="anomaly.html">Anomaly Hunter</a>
+  <a class="tab" href="mission.html">Mission Survival</a>
+  <a class="tab" href="landing.html">Landing Sites</a>
+  <a class="tab" href="discovery.html" aria-current="page">Discovery Engine</a>
+</div></nav>
+
+<main class="wrap">
+  <div class="phead">
+    <div>
+      <div class="eyebrow">Tool 04 · Cross-mission reasoning</div>
+      <h1>Discovery Engine</h1>
+      <p>Links observations of the same quantity from different missions and instruments, finds excursions and disagreements, then tests each one: is it replicated, does it follow a processing version, is it confounded by when it was observed? Every finding ends with a specific question to investigate next.</p>
+    </div>
+  </div>
+
+  <div class="layout">
+    <aside class="stack">
+      <div class="card">
+        <h2>Catalog</h2>
+        <div class="seg" id="srcSeg" role="group" aria-label="Catalog source">
+          <button aria-pressed="true" data-src="sample">Sample catalog</button>
+          <button aria-pressed="false" data-src="csv">Import CSV</button>
+        </div>
+        <div id="sampleBox" style="margin-top:12px">
+          <p class="hint" style="margin-top:0">About 700 synthetic Mars observations from seven made-up instruments on orbiters, a lander and a rover. Hidden inside: a real dust storm, a real warm spot, a calibration change, a single bad frame and an unexplained methane signal.</p>
+          <div class="btns" style="margin-top:10px"><button class="btn" id="btnNew">New catalog</button></div>
+        </div>
+        <div id="csvBox" hidden style="margin-top:12px">
+          <div class="field"><input type="file" id="fileCsv" accept=".csv,text/csv"></div>
+          <p class="hint" style="margin-top:0">One row per observation. Required columns:</p>
+          <pre class="tpl" id="tpl">id,instrument,quantity,value,sigma,lat,lon,day,local_time,proc_version,unit
+OBS-1,ORB-A TIR,surface_temp_K,203.4,1.2,12.1,-31.8,214,3,v1,K</pre>
+          <div class="btns" style="margin-top:8px"><button class="btn" id="btnCopy">Copy template</button></div>
+          <p class="hint" id="csvMsg"></p>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Engine settings</h2>
+        <div class="field"><label for="linkKm">Link distance <output id="linkKmV"></output></label><input type="range" id="linkKm" min="50" max="800" step="25" value="300"></div>
+        <div class="field"><label for="zThr">Excursion threshold <output id="zThrV"></output></label><input type="range" id="zThr" min="3" max="10" step="0.5" value="5"></div>
+        <div class="field"><label for="dThr">Disagreement threshold <output id="dThrV"></output></label><input type="range" id="dThr" min="1.5" max="6" step="0.25" value="3"></div>
+        <p class="hint">Excursions use robust z-scores against the same instrument's own baseline: its site history for landers and rovers, or a robust latitude-trend fit for orbiters. Disagreements use the paired difference divided by the combined measurement error.</p>
+      </div>
+      <div class="card">
+        <h2>How a verdict is reached</h2>
+        <p class="hint" style="margin-top:0"><b style="color:var(--good)">Likely real</b> when independent instruments see it, it holds across processing versions, and it spans several observations.<br><b style="color:var(--alert)">Likely artifact</b> when it tracks a processing version, shows the same offset everywhere, or rests on one point that another instrument contradicts.<br><b style="color:var(--warn)">Unresolved</b> when the instruments that could confirm it never observed under the same conditions.</p>
+      </div>
+    </aside>
+
+    <div class="stack">
+      <div class="stats" id="stats"></div>
+      <div class="card">
+        <h2>Cross-mission links</h2>
+        <div class="tablewrap"><table class="matrix" id="matrix"></table></div>
+        <p class="hint">Each cell counts observation pairs of the same quantity within the link distance and time window. Color shows how well they agree: median |Δ| / combined error.</p>
+      </div>
+      <div class="card">
+        <h2>Findings</h2>
+        <div class="fgrid" id="findings"></div>
+      </div>
+      <div class="card">
+        <h2>Questions to investigate next</h2>
+        <ol class="qs" id="questions"></ol>
+      </div>
+      <div class="card">
+        <h2>Catalog preview <b id="prevNote"></b></h2>
+        <div class="tablewrap" style="max-height:360px"><table id="preview"></table></div>
+      </div>
+    </div>
+  </div>
+
+  <p class="foot">Real archives to build a catalog from: the <a href="https://pds.nasa.gov/" target="_blank" rel="noopener">NASA Planetary Data System</a> and its <a href="https://nasa-pds.github.io/pds-api/" target="_blank" rel="noopener">search API</a>, and <a href="https://psa.esa.int/" target="_blank" rel="noopener">ESA's Planetary Science Archive</a>. The engine runs entirely in your browser; imported files are never uploaded.</p>
+</main>
+
+<script src="lab.js"></script>
+<script>
+(function(){
+"use strict";
+const {$,rng,clamp,median,mad,fmt,pct,esc}=Lab;
+const D2R=Math.PI/180, R2D=180/Math.PI, RM=3389.5;
+const QTY={
+  surface_temp_K:{label:'Surface temperature',unit:'K',win:20,lt:3},
+  dust_tau:{label:'Dust optical depth',unit:'τ',win:5,lt:null},
+  methane_ppbv:{label:'Methane',unit:'ppbv',win:30,lt:null},
+  water_wt:{label:'Water-equivalent hydrogen',unit:'wt%',win:5000,lt:null}
+};
+const COLORS=['#f2b04a','#86b6ff','#6fd1a2','#ff8a6e','#c49cff','#e9cf5c','#8fd3e8','#d9a0b8','#b5b5b5'];
+let src='sample', seed=11, rows=[], out=null;
+
+const hav=(a1,o1,a2,o2)=>{ const dl=(a2-a1)*D2R, dn=(o2-o1)*D2R; const h=Math.sin(dl/2)**2+Math.cos(a1*D2R)*Math.cos(a2*D2R)*Math.sin(dn/2)**2; return 2*RM*Math.asin(Math.min(1,Math.sqrt(h))); };
+const isDay=lt=>lt>=6&&lt<18;
+const qcfg=q=>QTY[q]||{label:q,unit:(rows.find(r=>r.quantity===q)||{}).unit||'',win:30,lt:null};
+
+/* ---------------- synthetic catalog ---------------- */
+function makeCatalog(sd){
+  const r=rng(sd), G=()=>Lab.gauss(r), out=[]; let id=0;
+  const S={lat:-4.6,lon:137.4}, Hs={lat:12,lon:-32}, GL={lat:8,lon:60};
+  const add=o=>out.push({id:'OBS-'+String(++id).padStart(4,'0'),...o});
+  const near=(c,km)=>{ const d=km/RM*R2D*Math.sqrt(r()), a=r()*2*Math.PI; return {lat:c.lat+d*Math.cos(a),lon:c.lon+d*Math.sin(a)/Math.cos(c.lat*D2R)}; };
+  const rnd=(la)=>({lat:-la+2*la*r(),lon:-180+360*r()});
+  const Ls=day=>(day*360/668.6+100)%360;
+  const tBase=(lat,lt)=>isDay(lt)?255-.55*Math.abs(lat):188-.4*Math.abs(lat);
+  const hot=(p,lt)=>hav(p.lat,p.lon,Hs.lat,Hs.lon)<260&&!isDay(lt)?18:0;
+  const storm=day=>day>=520&&day<=600;
+  const tau=day=>storm(day)?2.6+.9*r():.55+.1*Math.sin(Ls(day)*D2R)+G()*.04;
+  const A=[];
+  for(let k=0;k<150;k++){ const p=k<12?near(Hs,220):rnd(60), day=Math.floor(r()*800), lt=k%2?3:15;
+    add({instrument:'ORB-A TIR',quantity:'surface_temp_K',value:tBase(p.lat,lt)+hot(p,lt)+G()*1.2,sigma:1.2,unit:'K',...p,day,local_time:lt,proc_version:'v1'}); A.push({...p,day,lt}); }
+  for(let k=0;k<160;k++){ let p,day,lt;
+    if(k<90){ const a=A[k]; p=near(a,120); day=clamp(a.day+Math.round((r()-.5)*16),0,799); lt=a.lt===3?2:14; }
+    else if(k<100){ p=near(Hs,220); day=Math.floor(r()*800); lt=k%2?2:14; }
+    else { p=rnd(60); day=Math.floor(r()*800); lt=k%2?2:14; }
+    const ver=day<400?'v1':'v2';
+    add({instrument:'ORB-B TIR',quantity:'surface_temp_K',value:tBase(p.lat,lt)+hot(p,lt)+G()*1.2+(ver==='v2'?6:0),sigma:1.2,unit:'K',...p,day,local_time:lt,proc_version:ver}); }
+  for(let k=0;k<80;k++){ const p=k<14?near(S,200):rnd(70); const day=k<4?524+k*20:Math.floor(r()*800);
+    add({instrument:'ORB-A TIR',quantity:'dust_tau',value:tau(day),sigma:.06,unit:'τ',...p,day,local_time:15,proc_version:'v1'}); }
+  for(let d=3;d<800;d+=8){ const p=near(S,3), day=d+Math.floor(r()*3);
+    add({instrument:'RVR-E CAM',quantity:'dust_tau',value:tau(day),sigma:.05,unit:'τ',...p,day,local_time:12,proc_version:'v2'}); }
+  for(let k=0;k<70;k++){ const p=k<24?near(S,250):rnd(70), day=Math.floor(r()*800);
+    add({instrument:'ORB-C TGS',quantity:'methane_ppbv',value:Math.max(0,.02+G()*.02),sigma:.03,unit:'ppbv',...p,day,local_time:17.5,proc_version:'v3'}); }
+  for(let d=5;d<800;d+=16){ const day=d+Math.floor(r()*4);
+    add({instrument:'LND-D TLS',quantity:'methane_ppbv',value:.41+G()*.1,sigma:.1,unit:'ppbv',...S,day,local_time:2.5,proc_version:'v1'}); }
+  [128,131,136,306,309,584,588,590,702].forEach(day=>add({instrument:'LND-D TLS',quantity:'methane_ppbv',value:5+2*r(),sigma:.6,unit:'ppbv',...S,day,local_time:2.5,proc_version:'v1'}));
+  const wm=lat=>2+25*Math.max(0,(Math.abs(lat)-45)/45);
+  const F=[];
+  for(let k=0;k<60;k++){ const p=rnd(80), day=Math.floor(r()*800); F.push(p); add({instrument:'ORB-F NS',quantity:'water_wt',value:wm(p.lat)+G()*1,sigma:1.2,unit:'wt%',...p,day,local_time:12,proc_version:'v1'}); }
+  add({instrument:'ORB-F NS',quantity:'water_wt',value:24.5,sigma:1.2,unit:'wt%',...GL,day:417,local_time:12,proc_version:'v1'});
+  for(let k=0;k<46;k++){ const p=k<35?near(F[k],150):k===35?near(GL,80):rnd(80), day=Math.floor(r()*800);
+    add({instrument:'ORB-G RAD',quantity:'water_wt',value:wm(p.lat)+G()*1.5,sigma:1.5,unit:'wt%',...p,day,local_time:12,proc_version:'v1'}); }
+  out.forEach(o=>{ o.lat=+o.lat.toFixed(3); o.lon=+(((o.lon+540)%360)-180).toFixed(3); o.value=+o.value.toFixed(3); });
+  return out;
+}
+
+/* ---------------- engine ---------------- */
+function run(){
+  const t0=performance.now(), KM=+$('linkKm').value, ZT=+$('zThr').value, DT=+$('dThr').value;
+  const N=rows.length, instruments=[...new Set(rows.map(r=>r.instrument))].sort(), quantities=[...new Set(rows.map(r=>r.quantity))];
+  const color={}; instruments.forEach((n,i)=>color[n]=COLORS[i%COLORS.length]);
+  rows.forEach((r,i)=>{ r._i=i; r.z=0; r.flag=false; r.base=null; });
+  // 1. links
+  const links=[];
+  for(let i=0;i<N;i++) for(let j=i+1;j<N;j++){
+    const a=rows[i], b=rows[j]; if(a.quantity!==b.quantity||a.instrument===b.instrument) continue;
+    const q=qcfg(a.quantity); if(Math.abs(a.day-b.day)>q.win) continue;
+    if(q.lt!=null){ let d=Math.abs(a.local_time-b.local_time); d=Math.min(d,24-d); if(d>q.lt) continue; }
+    if(Math.abs(a.lat-b.lat)>KM/RM*R2D) continue;
+    const dist=hav(a.lat,a.lon,b.lat,b.lon); if(dist>KM) continue;
+    const [x,y]=a.instrument<b.instrument?[a,b]:[b,a];
+    links.push({a:x,b:y,q:a.quantity,dist,pz:(x.value-y.value)/Math.sqrt(x.sigma**2+y.sigma**2)});
+  }
+  // 2. excursions: each observation against its own instrument's baseline
+  const byIQ={}; rows.forEach(r=>{ (byIQ[r.instrument+'|'+r.quantity]=byIQ[r.instrument+'|'+r.quantity]||[]).push(r); });
+  Object.values(byIQ).forEach(list=>{
+    const q=qcfg(list[0].quantity);
+    // fixed-site instruments (lander, rover): compare against the site's own time series
+    const c0=list[0], atSite=list.filter(o=>hav(o.lat,o.lon,c0.lat,c0.lon)<KM);
+    if(atSite.length>=.8*list.length&&list.length>=10){
+      list.forEach(r=>{ const ref=list.filter(o=>o!==r&&o.proc_version===r.proc_version&&(q.lt==null||isDay(o.local_time)===isDay(r.local_time)));
+        if(ref.length<6) return; const vals=ref.map(o=>o.value), m=median(vals), s=Math.max(1.4826*mad(vals,m),r.sigma);
+        r.base='site series'; r.ref=m; r.z=(r.value-m)/s; r.flag=Math.abs(r.z)>=ZT; });
+      return;
+    }
+    // mapping instruments: robust latitude-trend fit per processing version and day/night class
+    const sub={}; list.forEach(r=>{ const k=r.proc_version+'|'+(q.lt==null?'':isDay(r.local_time)); (sub[k]=sub[k]||[]).push(r); });
+    Object.values(sub).forEach(g=>{
+      if(g.length<8) return;
+      const fit=robustLatFit(g);
+      g.forEach((r,i)=>{ const s=Math.max(fit.s,r.sigma); r.base='latitude trend'; r.ref=fit.pred[i]; r.z=(r.value-fit.pred[i])/s; r.flag=Math.abs(r.z)>=ZT; });
+    });
+  });
+  // group flagged observations
+  const fl=rows.filter(r=>r.flag), parent=new Map(fl.map(r=>[r,r]));
+  const find=x=>{ while(parent.get(x)!==x){ parent.set(x,parent.get(parent.get(x))); x=parent.get(x); } return x; };
+  for(let i=0;i<fl.length;i++) for(let j=i+1;j<fl.length;j++){ const a=fl[i], b=fl[j]; if(a.quantity!==b.quantity) continue;
+    if(hav(a.lat,a.lon,b.lat,b.lon)<=KM*1.3||(Math.abs(a.day-b.day)<=10&&Math.sign(a.z)===Math.sign(b.z))) parent.set(find(a),find(b)); }
+  const groups={}; fl.forEach(r=>{ const k=find(r)._i; (groups[k]=groups[k]||[]).push(r); });
+  const findings=[];
+  Object.values(groups).forEach(g=>findings.push(testExcursion(g,ZT,KM)));
+  // 3. disagreements between instrument pairs
+  const pairKeys={}; links.forEach(l=>{ const k=l.q+'|'+l.a.instrument+'|'+l.b.instrument; (pairKeys[k]=pairKeys[k]||[]).push(l); });
+  Object.values(pairKeys).forEach(ls=>{
+    if(ls.length<4) return;
+    const subsets=[{name:'all',ls}];
+    ['a','b'].forEach(side=>{ const vs=[...new Set(ls.map(l=>l[side].proc_version))]; if(vs.length>1) vs.forEach(v=>subsets.push({name:side+':'+v,side,v,ls:ls.filter(l=>l[side].proc_version===v)})); });
+    const hit=subsets.filter(s=>s.ls.length>=4&&Math.abs(median(s.ls.map(l=>l.pz)))>DT);
+    if(hit.length) findings.push(testDisagreement(ls,subsets,DT,KM));
+  });
+  // order: unresolved first (most to learn), then real, then artifact
+  const ord={unresolved:0,real:1,artifact:2};
+  findings.sort((a,b)=>ord[a.verdict]-ord[b.verdict]||b.strength-a.strength);
+  out={instruments,quantities,color,links,findings,ms:performance.now()-t0};
+  render();
+}
+
+function robustLatFit(g){
+  const basis=lat=>{ const a=Math.abs(lat); return [1,a/90,Math.max(0,a-30)/90,Math.max(0,a-50)/90,Math.max(0,a-65)/90]; };
+  const X=g.map(r=>basis(r.lat)), y=g.map(r=>r.value), P=5;
+  let w=new Array(g.length).fill(1), beta=new Array(P).fill(0), s=1;
+  for(let it=0;it<8;it++){
+    const A=[...Array(P)].map(()=>new Array(P+1).fill(0));
+    for(let i=0;i<g.length;i++) for(let a=0;a<P;a++){ for(let b=0;b<P;b++) A[a][b]+=w[i]*X[i][a]*X[i][b]; A[a][P]+=w[i]*X[i][a]*y[i]; }
+    for(let a=1;a<P;a++) A[a][a]+=1e-3*g.length;
+    for(let c=0;c<P;c++){ let piv=c; for(let r=c+1;r<P;r++) if(Math.abs(A[r][c])>Math.abs(A[piv][c])) piv=r; [A[c],A[piv]]=[A[piv],A[c]];
+      for(let r=0;r<P;r++){ if(r===c||!A[c][c]) continue; const f=A[r][c]/A[c][c]; for(let k=c;k<=P;k++) A[r][k]-=f*A[c][k]; } }
+    beta=A.map((row,i)=>row[i]?row[P]/row[i]:0);
+    const res=y.map((v,i)=>v-X[i].reduce((t,x,k)=>t+x*beta[k],0));
+    s=1.4826*mad(res,median(res))||1e-6;
+    w=res.map(r=>{ const u=Math.abs(r)/(1.5*s); return u<=1?1:1/u; });
+  }
+  return {pred:X.map(x=>x.reduce((t,v,k)=>t+v*beta[k],0)),s};
+}
+function lcls(list){ const d=list.some(r=>isDay(r.local_time)), n=list.some(r=>!isDay(r.local_time)); return d&&n?'mixed':d?'day':'night'; }
+function where(list){ const la=median(list.map(r=>r.lat)), lo=median(list.map(r=>r.lon)); return `${Math.abs(la).toFixed(1)}°${la>=0?'N':'S'}, ${Math.abs(lo).toFixed(1)}°${lo>=0?'E':'W'}`; }
+function regions(list,km){ const c=[]; list.forEach(r=>{ if(!c.some(x=>hav(x.lat,x.lon,r.lat,r.lon)<km)) c.push(r); }); return c.length; }
+
+function testExcursion(g,ZT,KM){
+  const q=qcfg(g[0].quantity), insts=[...new Set(g.map(r=>r.instrument))], sign=Math.sign(median(g.map(r=>r.z)));
+  const days=g.map(r=>r.day), d0=Math.min(...days), d1=Math.max(...days);
+  const spread=Math.max(...g.map(a=>Math.max(...g.map(b=>hav(a.lat,a.lon,b.lat,b.lon)))));
+  const compact=spread<=KM*2.5;
+  const tests=[]; let score=0, confound=false;
+  // replication
+  if(insts.length>=2){ tests.push(['Replication','pass',`Seen independently by ${insts.join(' and ')}.`]); score+=2; }
+  else {
+    const others=rows.filter(o=>o.quantity===g[0].quantity&&o.instrument!==insts[0]&&g.some(r=>Math.abs(o.day-r.day)<=q.win&&hav(o.lat,o.lon,r.lat,r.lon)<=KM));
+    if(!others.length) tests.push(['Replication','n/a',`No other instrument observed ${q.label.toLowerCase()} here at the same time.`]);
+    else {
+      const calm=others.filter(o=>Math.abs(o.z)<2);
+      if(calm.length/others.length>.6){
+        const a=lcls(g), b=lcls(others);
+        if(q.lt==null&&a!=='mixed'&&b!=='mixed'&&a!==b){ confound=true; tests.push(['Replication','conflict',`${others.length} nearby ${[...new Set(others.map(o=>o.instrument))].join(', ')} observations show nothing unusual, but they were all taken in the ${b} while ${insts[0]} saw the signal at ${a}.`]); }
+        else { score-=2; tests.push(['Replication','fail',`Contradicted: ${calm.length} of ${others.length} nearby observations by ${[...new Set(others.map(o=>o.instrument))].join(', ')} are normal.`]); }
+      } else { score+=1; tests.push(['Replication','pass',`Other instruments nearby also read high.`]); }
+    }
+  }
+  // coherence
+  if(g.length>=3){ score+=1; tests.push(['Coherence','pass',`${g.length} separate observations${compact?` within ${Math.round(spread)} km`:''} across ${d1-d0+1} days.`]); }
+  else if(g.length===1){ score-=.5; tests.push(['Coherence','fail','Rests on a single observation.']); }
+  else tests.push(['Coherence','weak','Only two observations.']);
+  // processing version
+  let vNote=null;
+  insts.forEach(n=>{ const all=new Set(rows.filter(r=>r.instrument===n&&r.quantity===g[0].quantity).map(r=>r.proc_version)), fv=new Set(g.filter(r=>r.instrument===n).map(r=>r.proc_version));
+    if(all.size>1){ if(fv.size>1){ score+=.5; vNote=['Processing version','pass',`${n} shows it in ${[...fv].join(' and ')}.`]; } else { score-=1; vNote=['Processing version','fail',`${n} shows it only in ${[...fv][0]}.`]; } } });
+  tests.push(vNote||['Processing version','n/a','Each instrument used a single processing version.']);
+  const strength=median(g.map(r=>Math.abs(r.z)));
+  tests.push(['Signal strength',strength>=ZT*1.6?'pass':'weak',`Median ${fmt(strength,1)} robust σ from the instrument's own baseline.`]);
+  if(strength>=ZT*1.6) score+=.5;
+  const verdict=confound?'unresolved':score>=2?'real':score<=-1?'artifact':'unresolved';
+  const dir=sign>0?'high':'low';
+  const title=compact?`${q.label} ${sign>0?'excess':'deficit'} near ${where(g)}`:`Widespread ${q.label.toLowerCase()} ${sign>0?'rise':'drop'}, days ${d0}–${d1}`;
+  const sum=`${g.length} ${q.label.toLowerCase()} reading${g.length>1?'s':''} ${dir} by a median ${fmt(strength,1)}σ, from ${insts.join(', ')}${compact?` at ${where(g)}`:` across ${regions(g,KM)} regions`}, observed ${lcls(g)==='mixed'?'by day and night':'only at '+lcls(g)}.`;
+  // question
+  let question;
+  const other=rows.find(o=>o.quantity===g[0].quantity&&!insts.includes(o.instrument));
+  if(verdict==='unresolved'&&confound){ const o2=[...new Set(rows.filter(o=>o.quantity===g[0].quantity&&!insts.includes(o.instrument)).map(o=>o.instrument))].join(' or ');
+    question=`Is the ${q.label.toLowerCase()} signal at ${where(g)} tied to time of day? ${insts[0]} only measures at ${lcls(g)}. Schedule ${o2} at ${lcls(g)} over this site, or ${insts[0]} in daylight, and test whether the signal follows local time.`; }
+  else if(verdict==='unresolved') question=`Can a second instrument observe ${where(g)} during days ${d0}–${d1}? Right now only ${insts.join(', ')} has data there.`;
+  else if(verdict==='artifact') question=g.length===1?`Pull raw frame ${g[0].id} from ${g[0].instrument} and check for a cosmic-ray hit, saturation or geolocation error before using this point.`:`Reprocess the ${insts.join(', ')} data for days ${d0}–${d1} and check whether the excursion survives.`;
+  else {
+    const coQ=quantities().filter(x=>x!==g[0].quantity&&rows.some(o=>o.quantity===x&&o.day>=d0-10&&o.day<=d1+10&&(compact?g.some(r=>hav(o.lat,o.lon,r.lat,r.lon)<=KM):true)));
+    question=compact?`What makes ${where(g)} read ${dir} in ${q.label.toLowerCase()}${lcls(g)!=='mixed'?' at '+lcls(g):''}? ${q.label==='Surface temperature'&&!isDay(g[0].local_time)?'Warm nights point to high thermal inertia (bedrock, duricrust or ice-cemented ground); compare against rock-abundance and hydrogen maps.':'Look for a surface or subsurface source in high-resolution imagery.'}`
+      :`Did the days ${d0}–${d1} event change other quantities?${coQ.length?` ${coQ.map(x=>qcfg(x).label).join(' and ')} data overlap this window; compare before, during and after.`:''}`;
+  }
+  return {kind:'Excursion',title,sum,tests,verdict,question,strength,g,insts,compact,d0,d1,q:g[0].quantity};
+}
+function quantities(){ return [...new Set(rows.map(r=>r.quantity))]; }
+
+function testDisagreement(ls,subsets,DT,KM){
+  const A=ls[0].a.instrument, B=ls[0].b.instrument, q=qcfg(ls[0].q), pzs=ls.map(l=>l.pz), med=median(pzs);
+  const tests=[]; let score=0, confound=false;
+  const split=subsets.filter(s=>s.name!=='all'&&s.ls.length>=4);
+  const bad=split.filter(s=>Math.abs(median(s.ls.map(l=>l.pz)))>DT), good=split.filter(s=>Math.abs(median(s.ls.map(l=>l.pz)))<1.5);
+  let verLabel=null;
+  if(bad.length&&good.length){ const s=bad[0], inst=s.side==='a'?A:B; verLabel=`${inst} ${s.v}`; score-=2;
+    tests.push(['Processing version','fail',`Agreement is good with ${good.map(x=>(x.side==='a'?A:B)+' '+x.v).join(', ')} (median ${fmt(median(good[0].ls.map(l=>l.pz)),1)}σ) but breaks with ${verLabel} (median ${fmt(median(s.ls.map(l=>l.pz)),1)}σ).`]); }
+  else tests.push(['Processing version',split.length?'pass':'n/a',split.length?'The offset does not depend on processing version.':'Both instruments used a single processing version.']);
+  const worst=bad.length?bad[0].ls:ls, wm=median(worst.map(l=>l.pz));
+  const same=worst.filter(l=>Math.sign(l.pz)===Math.sign(wm)).length/worst.length, nreg=regions(worst.map(l=>l.a),KM*1.5);
+  if(same>=.85&&nreg>=3){ score-=1; tests.push(['Uniformity','fail',`The same-sign offset appears in ${pct(same)} of pairs across ${nreg} separate regions, which points to calibration rather than a local process.`]); }
+  else if(nreg===1){ score+=.5; tests.push(['Uniformity','local',`All disagreeing pairs come from one region, so a local process is possible.`]); }
+  else tests.push(['Uniformity','mixed',`Offsets vary in sign or place (${pct(same)} same sign, ${nreg} regions).`]);
+  const ca=lcls(worst.map(l=>l.a)), cb=lcls(worst.map(l=>l.b));
+  if(q.lt==null&&ca!=='mixed'&&cb!=='mixed'&&ca!==cb){ confound=true; tests.push(['Observing conditions','conflict',`${A} observed only at ${ca}, ${B} only at ${cb}. A real day–night cycle would look exactly like this disagreement.`]); }
+  else tests.push(['Observing conditions','pass','Both instruments observed under matching local times.']);
+  tests.push(['Pairs compared','info',`${worst.length} linked pairs, median ${fmt(wm,1)}σ (${A} ${wm>0?'higher':'lower'}).`]);
+  const verdict=confound?'unresolved':score<=-1?'artifact':score>=1?'real':'unresolved';
+  const diff=median(worst.map(l=>l.a.value-l.b.value));
+  const title=`${A} and ${B} disagree on ${q.label.toLowerCase()}`;
+  const sum=`${A} reads ${fmt(Math.abs(diff),q.unit==='K'?1:2)} ${q.unit} ${diff>0?'higher':'lower'} than ${B} at the same places and times${verLabel?`, starting with ${verLabel}`:''}.`;
+  let question;
+  if(verdict==='artifact'&&verLabel) question=`Reprocess ${verLabel} data with the previous calibration and confirm the ${fmt(Math.abs(diff),1)} ${q.unit} offset disappears. Until then, exclude ${verLabel} from trend studies.`;
+  else if(verdict==='artifact') question=`Cross-calibrate ${A} and ${B} over a stable reference site; the offset is too uniform to be geophysical.`;
+  else if(confound) question=`Does ${q.label.toLowerCase()} change between ${ca} and ${cb}? Coordinate one ${A} and one ${B} observation at the same local time over the same site to separate a daily cycle from an instrument difference.`;
+  else question=`Which instrument is right? Find a third dataset of ${q.label.toLowerCase()} over the same region to break the tie.`;
+  return {kind:'Disagreement',title,sum,tests,verdict,question,strength:Math.abs(wm),ls:worst,A,B,q:ls[0].q,verLabel};
+}
+
+/* ---------------- render ---------------- */
+const VERD={real:['Likely real','good'],artifact:['Likely artifact','bad'],unresolved:['Unresolved','warn']};
+const RES={pass:'good',fail:'bad',conflict:'warn',weak:'warn',local:'info',mixed:'',info:'','n/a':''};
+function render(){
+  const {instruments,links,findings,color}=out;
+  const n={real:0,artifact:0,unresolved:0}; findings.forEach(f=>n[f.verdict]++);
+  $('stats').innerHTML=[
+    ['Observations',rows.length,`${quantities().length} quantities`],
+    ['Instruments',instruments.length,'on '+new Set(rows.map(r=>r.instrument.split(' ')[0])).size+' platforms'],
+    ['Cross-links',links.length,`${Math.round(out.ms)} ms to build and test`],
+    ['Findings',findings.length,`${n.real} real · ${n.artifact} artifact · ${n.unresolved} open`]
+  ].map(s=>`<div class="stat"><div class="k">${s[0]}</div><div class="n">${s[1]}</div><div class="s">${s[2]}</div></div>`).join('');
+  // matrix
+  const cell=(a,b)=>{ const ls=links.filter(l=>(l.a.instrument===a&&l.b.instrument===b)||(l.a.instrument===b&&l.b.instrument===a));
+    if(!ls.length) return '<td><span class="cell" style="color:var(--muted)">·</span></td>';
+    const m=median(ls.map(l=>Math.abs(l.pz))), t=clamp((m-1)/3,0,1);
+    const bg=`rgba(${Math.round(111+(255-111)*t)},${Math.round(209+(138-209)*t)},${Math.round(162+(110-162)*t)},.18)`;
+    return `<td><span class="cell" style="background:${bg}">${ls.length}<small>${fmt(m,1)}σ · ${esc(qcfg(ls[0].q).label.split(' ')[0].toLowerCase())}</small></span></td>`; };
+  $('matrix').innerHTML=`<thead><tr><th></th>${instruments.map(i=>`<th><span style="color:${color[i]}">●</span> ${esc(i)}</th>`).join('')}</tr></thead><tbody>${instruments.map(a=>`<tr><th><span style="color:${color[a]}">●</span> ${esc(a)}</th>${instruments.map(b=>a===b?'<td></td>':cell(a,b)).join('')}</tr>`).join('')}</tbody>`;
+  // findings
+  $('findings').innerHTML=findings.length?findings.map((f,i)=>`<article class="finding">
+    <header><div style="min-width:0"><div class="kind">${f.kind} · F${i+1}</div><h3>${esc(f.title)}</h3></div><span class="pill ${VERD[f.verdict][1]}">${VERD[f.verdict][0]}</span></header>
+    <p class="sum">${esc(f.sum)}</p>
+    <div class="chart" id="fc${i}"></div>
+    <div class="tablewrap"><table class="tests"><tbody>${f.tests.map(t=>`<tr><td>${esc(t[0])}</td><td><span class="pill ${RES[t[1]]||''}">${esc(t[1])}</span></td><td>${esc(t[2])}</td></tr>`).join('')}</tbody></table></div>
+    <div class="q"><b>NEXT QUESTION</b>${esc(f.question)}</div></article>`).join('')
+    :'<p class="empty">No excursions or disagreements at these thresholds. Lower them to look for weaker signals.</p>';
+  findings.forEach((f,i)=>$('fc'+i).innerHTML=f.kind==='Excursion'?chartEx(f):chartDis(f));
+  // questions
+  $('questions').innerHTML=findings.map((f,i)=>`<li>${esc(f.question)}<span class="tag pill ${VERD[f.verdict][1]}">F${i+1}</span></li>`).join('')||'<li class="empty">No open questions.</li>';
+  // preview
+  const cols=['id','instrument','quantity','value','sigma','unit','lat','lon','day','local_time','proc_version'];
+  const show=rows.slice().sort((a,b)=>(b.flag-a.flag)||a.day-b.day).slice(0,60);
+  $('prevNote').textContent=` · ${show.length} of ${rows.length} rows, flagged first`;
+  $('preview').innerHTML=`<thead><tr>${cols.map(c=>`<th class="${['value','sigma','lat','lon','day','local_time'].includes(c)?'num':''}">${c}</th>`).join('')}<th class="num">z</th></tr></thead><tbody>${show.map(r=>`<tr>${cols.map(c=>`<td class="${typeof r[c]==='number'?'num':''}">${esc(typeof r[c]==='number'?(Number.isInteger(r[c])?r[c]:r[c].toFixed(c==='value'?2:1)):r[c])}</td>`).join('')}<td class="num" style="color:${r.flag?'var(--alert)':'var(--muted)'}">${r.base?fmt(r.z,1):'—'}</td></tr>`).join('')}</tbody>`;
+}
+function axes(W,H,L,R,T,B,x0,x1,y0,y1,yl,xl){
+  const X=v=>L+(W-L-R)*(v-x0)/(x1-x0||1), Y=v=>T+(H-T-B)*(1-(v-y0)/(y1-y0||1));
+  let s=''; const yt=niceTicks(y0,y1,4), xt=niceTicks(x0,x1,5);
+  yt.forEach(v=>{ s+=`<line x1="${L}" x2="${W-R}" y1="${Y(v)}" y2="${Y(v)}" stroke="rgba(150,168,210,.1)"/><text x="${L-6}" y="${Y(v)+3.5}" text-anchor="end" font-size="10" fill="#8a94ae">${+v.toFixed(2)}</text>`; });
+  xt.forEach(v=>{ s+=`<text x="${X(v)}" y="${H-B+14}" text-anchor="middle" font-size="10" fill="#8a94ae">${+v.toFixed(0)}</text>`; });
+  s+=`<text x="${W-R}" y="${H-3}" text-anchor="end" font-size="10" fill="#8a94ae">${xl}</text><text x="${L}" y="${T-4}" font-size="10" fill="#8a94ae">${esc(yl)}</text>`;
+  return {s,X,Y};
+}
+function niceTicks(a,b,n){ const span=b-a||1, step0=span/n, mag=Math.pow(10,Math.floor(Math.log10(step0))), f=step0/mag, step=(f<1.5?1:f<3?2:f<7?5:10)*mag, out=[]; for(let v=Math.ceil(a/step)*step;v<=b+1e-9;v+=step) out.push(v); return out; }
+function chartEx(f){
+  const KM=+$('linkKm').value, q=qcfg(f.q);
+  let pts=rows.filter(o=>o.quantity===f.q);
+  if(f.compact) pts=pts.filter(o=>f.g.some(r=>hav(o.lat,o.lon,r.lat,r.lon)<=KM*1.3));
+  else pts=pts.filter(o=>o.day>=f.d0-80&&o.day<=f.d1+80);
+  if(!pts.length) return '';
+  const W=640,H=170,L=46,R=10,T=16,B=26, xs=pts.map(p=>p.day), ys=pts.map(p=>p.value);
+  let y0=Math.min(...ys), y1=Math.max(...ys); const pad=(y1-y0)*.08||1; y0-=pad; y1+=pad;
+  const ax=axes(W,H,L,R,T,B,Math.min(...xs),Math.max(...xs),y0,y1,`${q.label} (${q.unit})`,'mission day');
+  let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(f.title)}">${ax.s}`;
+  if(!f.compact) s+=`<rect x="${ax.X(f.d0)}" y="${T}" width="${Math.max(2,ax.X(f.d1)-ax.X(f.d0))}" height="${H-T-B}" fill="rgba(242,176,74,.08)"/>`;
+  pts.forEach(p=>{ s+=`<circle cx="${ax.X(p.day).toFixed(1)}" cy="${ax.Y(p.value).toFixed(1)}" r="${p.flag?3.6:2.4}" fill="${out.color[p.instrument]}" fill-opacity="${p.flag?1:.55}" ${p.flag?'stroke="#e6e9f2" stroke-width="1"':''}/>`; });
+  s+='</svg>';
+  const insts=[...new Set(pts.map(p=>p.instrument))];
+  return s+`<div class="legend">${insts.map(i=>`<span><i style="background:${out.color[i]};border-radius:50%"></i>${esc(i)}</span>`).join('')}<span><i style="background:transparent;border:1.5px solid #e6e9f2;border-radius:50%"></i>Flagged</span><span>${f.compact?'All readings within '+Math.round(KM*1.3)+' km':'All readings in the window'}</span></div>`;
+}
+function chartDis(f){
+  const DT=+$('dThr').value, ls=f.ls, xs=ls.map(l=>l.a.day), ys=ls.map(l=>l.pz);
+  const all=out.links.filter(l=>l.a.instrument===f.A&&l.b.instrument===f.B&&l.q===f.q);
+  const W=640,H=170,L=46,R=10,T=16,B=26;
+  let y0=Math.min(-DT-1,...all.map(l=>l.pz)), y1=Math.max(DT+1,...all.map(l=>l.pz));
+  const ax=axes(W,H,L,R,T,B,Math.min(...all.map(l=>l.a.day)),Math.max(...all.map(l=>l.a.day)),y0,y1,`${f.A} − ${f.B} (σ)`,'mission day');
+  let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(f.title)}">${ax.s}`;
+  [DT,-DT].forEach(v=>s+=`<line x1="${L}" x2="${W-R}" y1="${ax.Y(v)}" y2="${ax.Y(v)}" stroke="rgba(255,138,110,.45)" stroke-dasharray="3 3"/>`);
+  s+=`<line x1="${L}" x2="${W-R}" y1="${ax.Y(0)}" y2="${ax.Y(0)}" stroke="rgba(150,168,210,.35)"/>`;
+  const vers=[...new Set(all.map(l=>l.a.proc_version+'/'+l.b.proc_version))], vc=['#86b6ff','#ff8a6e','#6fd1a2','#e9cf5c'];
+  all.forEach(l=>{ const k=vers.indexOf(l.a.proc_version+'/'+l.b.proc_version); s+=`<circle cx="${ax.X(l.a.day).toFixed(1)}" cy="${ax.Y(l.pz).toFixed(1)}" r="2.8" fill="${vc[k%4]}" fill-opacity=".8"/>`; });
+  s+='</svg>';
+  return s+`<div class="legend">${vers.map((v,k)=>`<span><i style="background:${vc[k%4]};border-radius:50%"></i>${esc(f.A)} ${esc(v.split('/')[0])} vs ${esc(f.B)} ${esc(v.split('/')[1])}</span>`).join('')}<span><i style="background:#ff8a6e;height:2px"></i>±${DT}σ threshold</span></div>`;
+}
+
+/* ---------------- CSV ---------------- */
+function parseCSV(text){
+  const lines=text.replace(/\r/g,'').split('\n').filter(l=>l.trim());
+  const split=l=>{ const o=[]; let cur='',inQ=false; for(let i=0;i<l.length;i++){ const ch=l[i]; if(ch==='"'){ if(inQ&&l[i+1]==='"'){cur+='"';i++;} else inQ=!inQ; } else if(ch===','&&!inQ){ o.push(cur); cur=''; } else cur+=ch; } o.push(cur); return o.map(s=>s.trim()); };
+  const head=split(lines[0]).map(h=>h.toLowerCase()), need=['instrument','quantity','value','sigma','lat','lon','day'];
+  const miss=need.filter(n=>!head.includes(n)); if(miss.length) throw new Error('Missing column'+(miss.length>1?'s':'')+': '+miss.join(', ')+'.');
+  const outR=[]; let bad=0;
+  for(let i=1;i<lines.length;i++){ const c=split(lines[i]), o={}; head.forEach((h,k)=>o[h]=c[k]);
+    const num=['value','sigma','lat','lon','day','local_time'].map(k=>[k,parseFloat(o[k])]);
+    if(num.slice(0,5).some(([k,v])=>!Number.isFinite(v))){ bad++; continue; }
+    const r={id:o.id||'ROW-'+i,instrument:o.instrument,quantity:o.quantity,unit:o.unit||'',proc_version:o.proc_version||'v1'};
+    num.forEach(([k,v])=>r[k]=Number.isFinite(v)?v:12); if(r.sigma<=0) r.sigma=1e-6; outR.push(r); }
+  if(!outR.length) throw new Error('No usable rows found.');
+  return {rows:outR,bad};
+}
+
+/* ---------------- UI ---------------- */
+const fm={linkKm:v=>v+' km',zThr:v=>v.toFixed(1)+' σ',dThr:v=>v.toFixed(2)+' σ'};
+let deb=null;
+Object.keys(fm).forEach(id=>{ const el=$(id),o=$(id+'V'); const upd=()=>o.textContent=fm[id](+el.value); upd(); el.addEventListener('input',()=>{ upd(); clearTimeout(deb); deb=setTimeout(run,200); }); });
+[...$('srcSeg').children].forEach(b=>b.onclick=()=>{ src=b.dataset.src; [...$('srcSeg').children].forEach(c=>c.setAttribute('aria-pressed',c===b));
+  $('sampleBox').hidden=src!=='sample'; $('csvBox').hidden=src!=='csv'; if(src==='sample'){ rows=makeCatalog(seed); run(); } });
+$('btnNew').onclick=()=>{ seed=Math.floor(Math.random()*1e6); rows=makeCatalog(seed); run(); };
+$('btnCopy').onclick=()=>{ const t=$('tpl').textContent; const done=()=>{ $('btnCopy').textContent='Copied'; setTimeout(()=>$('btnCopy').textContent='Copy template',1400); };
+  if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(done,()=>sel()); else sel();
+  function sel(){ const r=document.createRange(); r.selectNodeContents($('tpl')); const s=getSelection(); s.removeAllRanges(); s.addRange(r); $('btnCopy').textContent='Selected, press Ctrl+C'; } };
+$('fileCsv').onchange=async()=>{ const f=$('fileCsv').files[0]; if(!f) return;
+  try{ const {rows:r,bad}=parseCSV(await f.text()); rows=r; $('csvMsg').style.color=''; $('csvMsg').textContent=`Loaded ${r.length} rows from ${f.name}${bad?`; skipped ${bad} with missing numbers`:''}.`; run(); }
+  catch(e){ $('csvMsg').style.color='var(--alert)'; $('csvMsg').textContent=e.message; } };
+rows=makeCatalog(seed); run();
+})();
+</script>
+</body>
+</html>

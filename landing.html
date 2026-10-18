@@ -1,0 +1,379 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="claude:viewport-fit-sides" content="cover">
+<title>Landing Site Finder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Michroma&display=swap">
+<link rel="stylesheet" href="lab.css">
+<style>
+.mapgrid{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:16px;align-items:start}
+@media (max-width:1100px){.mapgrid{grid-template-columns:1fr}}
+#map{cursor:crosshair}
+.cands{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+@media (max-width:700px){.cands{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.cands button{width:100%;text-align:left;background:none;border:1px solid var(--line);border-radius:8px;padding:10px;cursor:pointer;display:flex;flex-direction:column;gap:6px}
+.cands button:hover{border-color:var(--line2)}
+.cands button[aria-pressed="true"]{border-color:var(--sun);background:rgba(242,176,74,.06)}
+.cands .t{display:flex;justify-content:space-between;align-items:baseline;font-weight:600}
+.cands .t span{font:500 13px/1 var(--f-mono);color:var(--sun)}
+.cands .m{display:grid;grid-template-columns:auto 1fr;gap:3px 8px;font:400 11px/1.3 var(--f-mono);color:var(--muted)}
+.cands .m b{font-weight:500;color:var(--fg);text-align:right}
+.detail dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:6px 12px;font-size:12.5px}
+.detail dt{color:var(--muted)} .detail dd{margin:0;text-align:right;font-family:var(--f-mono);font-size:12px}
+.units{display:flex;flex-direction:column;gap:6px;margin-top:12px}
+.unit{display:grid;grid-template-columns:12px minmax(0,1fr) 46px;gap:8px;align-items:center;font-size:12px}
+.unit i{width:12px;height:12px;border-radius:3px}
+.unit span:last-child{font-family:var(--f-mono);text-align:right;color:var(--muted)}
+.chart svg{width:100%;height:auto;display:block}
+</style>
+</head>
+<body>
+<nav class="nav"><div class="nav-in">
+  <a class="mark" href="index.html">SOLAR SYSTEM LAB</a>
+  <a class="tab" href="index.html">Orrery</a>
+  <a class="tab" href="anomaly.html">Anomaly Hunter</a>
+  <a class="tab" href="mission.html">Mission Survival</a>
+  <a class="tab" href="landing.html" aria-current="page">Landing Sites</a>
+  <a class="tab" href="discovery.html">Discovery Engine</a>
+</div></nav>
+
+<main class="wrap">
+  <div class="phead">
+    <div>
+      <div class="eyebrow">Tool 03 · Terrain analysis</div>
+      <h1>Landing Site Finder</h1>
+      <p>Scores every possible landing point on a terrain model for three things at once: how safe the landing ellipse is, how much geological variety a rover could reach, and how uncertain that safety estimate is. The best sites are the ones that do well on all three, not just one.</p>
+    </div>
+  </div>
+
+  <div class="layout">
+    <aside class="stack">
+      <div class="card">
+        <h2>Terrain</h2>
+        <div class="seg" id="srcSeg" role="group" aria-label="Terrain source">
+          <button aria-pressed="true" data-src="sample">Sample terrain</button>
+          <button aria-pressed="false" data-src="upload">Upload DEM</button>
+        </div>
+        <div id="sampleBox" style="margin-top:12px">
+          <p class="hint" style="margin-top:0">A synthetic 5.1 × 5.1 km Mars-like site at 20 m per pixel, with craters, a dry channel, a boulder field and a layered mound.</p>
+          <div class="btns" style="margin-top:10px"><button class="btn" id="btnNew">New terrain</button></div>
+        </div>
+        <div id="uploadBox" hidden style="margin-top:12px">
+          <div class="field"><span class="flabel">Heightmap (grayscale, white = high)</span><input type="file" id="fileDem" accept="image/*"></div>
+          <div class="field"><span class="flabel">Optional orbital image of the same area</span><input type="file" id="fileImg" accept="image/*"></div>
+          <div class="field"><label for="upScale">Meters per pixel (original)</label><input type="number" id="upScale" value="20" min="0.1" step="0.1"></div>
+          <div class="field"><label for="upRange">Height range, black to white (m)</label><input type="number" id="upRange" value="400" min="1" step="1"></div>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Lander limits</h2>
+        <div class="field"><label for="slopeLim">Maximum slope <output id="slopeLimV"></output></label><input type="range" id="slopeLim" min="5" max="30" step="1" value="15"></div>
+        <div class="field"><label for="roughLim">Maximum roughness <output id="roughLimV"></output></label><input type="range" id="roughLim" min="0.1" max="2" step="0.05" value="0.5"></div>
+        <div class="field"><label for="ellA">Landing ellipse, semi-major axis <output id="ellAV"></output></label><input type="range" id="ellA" min="100" max="600" step="20" value="300"></div>
+        <div class="field"><label for="trav">Rover traverse radius <output id="travV"></output></label><input type="range" id="trav" min="300" max="2000" step="50" value="1000"></div>
+        <div class="field"><label for="minSafe">Required safe fraction <output id="minSafeV"></output></label><input type="range" id="minSafe" min="0.5" max="1" step="0.01" value="0.85"></div>
+      </div>
+      <div class="card">
+        <h2>Weights</h2>
+        <div class="field"><label for="wS">Safety <output id="wSV"></output></label><input type="range" id="wS" min="0" max="1" step="0.05" value="0.5"></div>
+        <div class="field"><label for="wSci">Science value <output id="wSciV"></output></label><input type="range" id="wSci" min="0" max="1" step="0.05" value="0.5"></div>
+        <div class="field"><label for="wU">Penalty for uncertainty <output id="wUV"></output></label><input type="range" id="wU" min="0" max="1" step="0.05" value="0.3"></div>
+        <p class="hint">Sites below the required safe fraction are never ranked, whatever their science value.</p>
+      </div>
+    </aside>
+
+    <div class="stack">
+      <div class="stats" id="stats"></div>
+      <div class="mapgrid">
+        <div class="card">
+          <div class="views" style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:12px">
+            <div class="seg" id="viewSeg" role="group" aria-label="Map layer">
+              <button aria-pressed="true" data-v="terrain">Terrain</button>
+              <button aria-pressed="false" data-v="slope">Hazards</button>
+              <button aria-pressed="false" data-v="units">Units</button>
+              <button aria-pressed="false" data-v="score">Score</button>
+            </div>
+          </div>
+          <div class="viewport"><canvas id="map" width="768" height="768" aria-label="Terrain map with candidate landing sites"></canvas></div>
+          <div class="legend" id="mapLegend" style="margin-top:10px"></div>
+          <p class="hint">Click anywhere on the map to score that spot.</p>
+        </div>
+        <div class="stack">
+          <div class="card detail" id="detail"><h2>Selected site</h2><div id="detailBody" class="empty">—</div></div>
+          <div class="card chart">
+            <h2>Safety vs science</h2>
+            <div id="scatter"></div>
+            <div class="legend" style="margin-top:6px"><span><i style="background:#6fd1a2"></i>Low uncertainty</span><span><i style="background:#ff8a6e"></i>High uncertainty</span><span><i style="background:transparent;border:1.5px solid #e6e9f2;border-radius:50%"></i>Pareto-optimal</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Top candidate sites</h2>
+        <ol class="cands" id="cands"></ol>
+      </div>
+    </div>
+  </div>
+
+  <p class="foot">Units are statistical terrain classes from k-means clustering on elevation, slope, roughness and brightness. They hint at geological variety; they are not a geologic map. Real elevation models: <a href="https://www.uahirise.org/dtm/" target="_blank" rel="noopener">HiRISE DTMs</a>, <a href="https://trek.nasa.gov/mars/" target="_blank" rel="noopener">Mars Trek</a>, <a href="https://trek.nasa.gov/moon/" target="_blank" rel="noopener">Moon Trek</a> and the <a href="https://pds-geosciences.wustl.edu/" target="_blank" rel="noopener">PDS Geosciences Node</a>. Export a heightmap as a grayscale PNG and enter its scale.</p>
+</main>
+
+<script src="lab.js"></script>
+<script>
+(function(){
+"use strict";
+const {$,clamp,rng,noise,fmt,pct,esc}=Lab;
+const D2R=Math.PI/180, R2D=180/Math.PI;
+const UNIT_COLORS=['#c9a37a','#7f9bd6','#d97a5a','#79c4a8','#c98fd0','#e2cf6e','#8fb7c9','#b5b5b5'];
+let src='sample', seed=3, view='terrain';
+let T=null;   // terrain {W,H,px,h,alb,synthetic,name}
+let M=null;   // derived maps {slope,rough,units,unitFrac,unitNames,K}
+let C=null;   // candidates
+let sel=null;
+
+/* ---------------- synthetic terrain ---------------- */
+function makeTerrain(sd){
+  const W=256,H=256,px=20, r=rng(sd), n1=noise(sd+1,5,3), n2=noise(sd+2,4,6), n3=noise(sd+3,5,8);
+  const h=new Float32Array(W*H), alb=new Float32Array(W*H);
+  for(let y=0;y<H;y++) for(let x=0;x<W;x++){ const u=x/(W-1),v=y/(H-1),i=y*W+x; h[i]=240*n1(u,v)+14*n2(u,v); alb[i]=.42+.16*(n3(u,v)-.5); }
+  // dry channel
+  const cy0=60+r()*136, amp=18+r()*20, ph=r()*6, chW=7;
+  for(let y=0;y<H;y++) for(let x=0;x<W;x++){
+    const yc=cy0+amp*Math.sin(x/40+ph)+12*Math.sin(x/17+ph*2), d=Math.abs(y-yc), i=y*W+x;
+    if(d<chW*2.2){ const t=d<chW?1:1-(d-chW)/(chW*1.2); h[i]-=34*clamp(t,0,1); if(d<chW*.9) alb[i]=.6+.05*(n3(x/W,y/H)-.5); }
+  }
+  // craters (log-uniform sizes)
+  for(let k=0;k<55;k++){ const D=4+60*Math.pow(r(),2.6), cx=r()*W, cy=r()*H, R=D/2, depth=.2*D*px;
+    for(let y=Math.max(0,Math.floor(cy-R*1.8));y<Math.min(H,cy+R*1.8);y++) for(let x=Math.max(0,Math.floor(cx-R*1.8));x<Math.min(W,cx+R*1.8);x++){
+      const d=Math.hypot(x-cx,y-cy)/R, i=y*W+x;
+      if(d<1) h[i]-=depth*(1-d*d*d*d)*.9; h[i]+=depth*.18*Math.exp(-Math.pow((d-1)/.22,2));
+      if(d>1&&d<1.8) alb[i]+=.05*(1.8-d)/.8*(D>20?1:.4);
+    } }
+  // layered mound
+  const mx=50+r()*156, my=50+r()*156, mR=20;
+  for(let y=0;y<H;y++) for(let x=0;x<W;x++){ const d=Math.hypot(x-mx,y-my)/mR, i=y*W+x;
+    if(d<1.15){ const base=70*clamp(1.15-d,0,1)/1.15; h[i]+=Math.floor(base/9)*9+ (base%9)*.25; alb[i]=.5+.1*Math.sin(base/4.5); } }
+  // boulder field
+  const bx=40+r()*176, by=40+r()*176, bR=22+r()*12, rb=rng(sd+9);
+  for(let y=0;y<H;y++) for(let x=0;x<W;x++){ const d=Math.hypot(x-bx,y-by)/bR, i=y*W+x;
+    if(d<1){ const w=1-d; h[i]+=(rb()-.5)*3.2*w; alb[i]-=.12*w; } }
+  return {W,H,px,h,alb,synthetic:true,name:`synthetic site, seed ${sd}`};
+}
+
+/* ---------------- derived maps ---------------- */
+function derive(){
+  const {W,H,px,h,alb}=T, slope=new Float32Array(W*H), rough=new Float32Array(W*H), resid=new Float32Array(W*H);
+  for(let y=0;y<H;y++) for(let x=0;x<W;x++){
+    const i=y*W+x, xl=x>0?i-1:i, xr=x<W-1?i+1:i, yu=y>0?i-W:i, yd=y<H-1?i+W:i;
+    const gx=(h[xr]-h[xl])/((xr-xl||1)*px), gy=(h[yd]-h[yu])/(((yd-yu)/W||1)*px);
+    slope[i]=Math.atan(Math.hypot(gx,gy))*R2D;
+    let s=0,n=0; for(let j=-1;j<=1;j++) for(let k=-1;k<=1;k++){ const xx=x+k,yy=y+j; if(xx>=0&&yy>=0&&xx<W&&yy<H){ s+=h[yy*W+xx]; n++; } }
+    resid[i]=h[i]-s/n;
+  }
+  for(let y=0;y<H;y++) for(let x=0;x<W;x++){
+    let s=0,s2=0,n=0; for(let j=-1;j<=1;j++) for(let k=-1;k<=1;k++){ const xx=x+k,yy=y+j; if(xx>=0&&yy>=0&&xx<W&&yy<H){ const v=resid[yy*W+xx]; s+=v; s2+=v*v; n++; } }
+    rough[y*W+x]=Math.sqrt(Math.max(0,s2/n-(s/n)**2));
+  }
+  // k-means terrain units
+  const K=6, F=alb?4:3, X=new Float32Array(W*H*F);
+  const feats=[h,slope,rough.map(v=>Math.log(v+.02))]; if(alb) feats.push(alb);
+  feats.forEach((f,k)=>{ const m=Lab.mean(f), s=Lab.std(f,m)||1; for(let i=0;i<W*H;i++) X[i*F+k]=(f[i]-m)/s; });
+  const R=rng(17), cent=new Float32Array(K*F), lab=new Uint8Array(W*H);
+  let first=Math.floor(R()*W*H); for(let k=0;k<F;k++) cent[k]=X[first*F+k];
+  const dmin=new Float32Array(W*H).fill(Infinity);
+  for(let c=1;c<K;c++){ let tot=0;
+    for(let i=0;i<W*H;i++){ let d=0; for(let k=0;k<F;k++){ const e=X[i*F+k]-cent[(c-1)*F+k]; d+=e*e; } if(d<dmin[i]) dmin[i]=d; tot+=dmin[i]; }
+    let pick=R()*tot, j=0; for(;j<W*H-1;j++){ pick-=dmin[j]; if(pick<=0) break; }
+    for(let k=0;k<F;k++) cent[c*F+k]=X[j*F+k]; }
+  for(let it=0;it<14;it++){
+    const sum=new Float64Array(K*F), cnt=new Float64Array(K);
+    for(let i=0;i<W*H;i++){ let best=0,bd=Infinity; for(let c=0;c<K;c++){ let d=0; for(let k=0;k<F;k++){ const e=X[i*F+k]-cent[c*F+k]; d+=e*e; } if(d<bd){bd=d;best=c;} } lab[i]=best; cnt[best]++; for(let k=0;k<F;k++) sum[best*F+k]+=X[i*F+k]; }
+    for(let c=0;c<K;c++) if(cnt[c]) for(let k=0;k<F;k++) cent[c*F+k]=sum[c*F+k]/cnt[c];
+  }
+  // relabel by area, name by centroid
+  const cnt=new Array(K).fill(0); for(let i=0;i<W*H;i++) cnt[lab[i]]++;
+  const order=[...Array(K).keys()].sort((a,b)=>cnt[b]-cnt[a]), remap=new Uint8Array(K); order.forEach((c,j)=>remap[c]=j);
+  for(let i=0;i<W*H;i++) lab[i]=remap[lab[i]];
+  const unitFrac=order.map(c=>cnt[c]/(W*H));
+  const names=order.map(c=>{
+    const z=[...cent.slice(c*F,c*F+F)], parts=[];
+    if(z[1]>.8) parts.push('steep'); else if(z[1]<-.6) parts.push('flat');
+    if(z[2]>.8) parts.push('rough'); else if(z[2]<-.8) parts.push('smooth');
+    if(F>3){ if(z[3]>.7) parts.push('bright'); else if(z[3]<-.7) parts.push('dark'); }
+    const noun=z[0]>.7?'highland':z[0]<-.7?'lowland':'plain';
+    return (parts.slice(0,2).join(', ')+' '+noun).trim().replace(/^./,ch=>ch.toUpperCase());
+  });
+  M={slope,rough,units:lab,unitFrac,unitNames:names,K};
+}
+
+/* ---------------- candidate scoring ---------------- */
+function params(){ return {slopeLim:+$('slopeLim').value,roughLim:+$('roughLim').value,ellA:+$('ellA').value,trav:+$('trav').value,minSafe:+$('minSafe').value,wS:+$('wS').value,wSci:+$('wSci').value,wU:+$('wU').value}; }
+function ellipseOffsets(a,b){ const o=[]; for(let y=-Math.ceil(b);y<=b;y++) for(let x=-Math.ceil(a);x<=a;x++) if((x/a)**2+(y/b)**2<=1) o.push([x,y]); return o; }
+function circleOffsets(r){ const o=[]; for(let y=-Math.ceil(r);y<=r;y++) for(let x=-Math.ceil(r);x<=r;x++) if(x*x+y*y<=r*r) o.push([x,y]); return o; }
+function scoreAt(cx,cy,P,ctx){
+  const {W,H}=T, {safe,near,ellO,travO,eA,eB,rT}=ctx;
+  const ellSafe=(ox,oy)=>{ let s=0,n=0; for(const [dx,dy] of ellO){ const x=cx+ox+dx,y=cy+oy+dy; if(x<0||y<0||x>=W||y>=H) continue; s+=safe[y*W+x]; n++; } return n?s/n:0; };
+  const safety=ellSafe(0,0);
+  const jit=[]; for(let k=0;k<8;k++){ const a=k*Math.PI/4; jit.push(ellSafe(Math.round(Math.cos(a)*eA*.5),Math.round(Math.sin(a)*eB*.5))); }
+  jit.push(safety); const jm=jit.reduce((a,b)=>a+b,0)/jit.length, jsd=Math.sqrt(jit.reduce((a,b)=>a+(b-jm)**2,0)/jit.length);
+  let nr=0,ne=0; for(const [dx,dy] of ellO){ const x=cx+dx,y=cy+dy; if(x<0||y<0||x>=W||y>=H) continue; nr+=near[y*W+x]; ne++; }
+  const nearFrac=ne?nr/ne:0;
+  const unc=clamp(jsd*3+nearFrac*.9,0,1);
+  const counts=new Float64Array(M.K); let tot=0, contacts=0;
+  for(const [dx,dy] of travO){ const x=cx+dx,y=cy+dy; if(x<1||y<1||x>=W-1||y>=H-1) continue; const i=y*W+x; if(M.slope[i]>25) continue;
+    counts[M.units[i]]++; tot++; if(M.units[i]!==M.units[i+1]||M.units[i]!==M.units[i+W]) contacts++; }
+  let ent=0; const present=[]; for(let u=0;u<M.K;u++){ if(!counts[u]) continue; const p=counts[u]/tot; ent-=p*Math.log(p); if(p>=.02) present.push(u); }
+  const div=tot?ent/Math.log(M.K):0;
+  const minG=Math.min(...M.unitFrac), rar=present.length?Math.max(...present.map(u=>-Math.log(M.unitFrac[u])))/-Math.log(minG):0;
+  const con=clamp((tot?contacts/tot:0)/.12,0,1);
+  const science=clamp(.45*div+.35*rar+.2*con,0,1);
+  const ok=safety>=P.minSafe;
+  const joint=(P.wS*safety+P.wSci*science-P.wU*unc)/Math.max(.05,P.wS+P.wSci);
+  return {x:cx,y:cy,safety,science,unc,joint,ok,div,rar,con,nearFrac,jsd,counts,tot,present};
+}
+function evaluate(){
+  const P=params(), {W,H,px}=T, t0=performance.now();
+  const safe=new Uint8Array(W*H), near=new Uint8Array(W*H);
+  for(let i=0;i<W*H;i++){ const s=M.slope[i], r=M.rough[i]; safe[i]=(s<P.slopeLim&&r<P.roughLim)?1:0; near[i]=(Math.abs(s-P.slopeLim)<2||Math.abs(r-P.roughLim)<P.roughLim*.2)?1:0; }
+  const eA=Math.max(2,P.ellA/px), eB=eA*.6, rT=Math.max(4,P.trav/px);
+  const ctx={safe,near,ellO:ellipseOffsets(eA,eB),travO:circleOffsets(rT),eA,eB,rT};
+  const stride=Math.max(3,Math.round(Math.min(W,H)/64)), m=Math.ceil(eA)+1, list=[];
+  for(let y=m;y<H-m;y+=stride) for(let x=m;x<W-m;x+=stride) list.push(scoreAt(x,y,P,ctx));
+  // Pareto front on safety↑ science↑ uncertainty↓ (eligible sites)
+  const el=list.filter(c=>c.ok);
+  el.forEach(c=>{ c.pareto=!el.some(o=>o!==c&&o.safety>=c.safety&&o.science>=c.science&&o.unc<=c.unc&&(o.safety>c.safety||o.science>c.science||o.unc<c.unc)); });
+  const sorted=[...el].sort((a,b)=>b.joint-a.joint), top=[];
+  for(const c of sorted){ if(top.length>=6) break; if(top.some(t=>Math.hypot(t.x-c.x,t.y-c.y)<rT*.8)) continue; top.push(c); }
+  top.forEach((c,i)=>c.rank=i+1);
+  C={P,ctx,list,top,stride,safeFrac:Lab.mean(safe),ms:performance.now()-t0};
+  if(!sel||!top.includes(sel)) sel=top[0]||null;
+}
+
+/* ---------------- drawing ---------------- */
+const cv=$('map'), g=cv.getContext('2d'), off=document.createElement('canvas'), og=off.getContext('2d');
+function hex(c){ return [parseInt(c.slice(1,3),16),parseInt(c.slice(3,5),16),parseInt(c.slice(5,7),16)]; }
+function ramp(stops,t){ t=clamp(t,0,1)*(stops.length-1); const i=Math.min(Math.floor(t),stops.length-2), f=t-i, a=stops[i], b=stops[i+1]; return [a[0]+(b[0]-a[0])*f,a[1]+(b[1]-a[1])*f,a[2]+(b[2]-a[2])*f]; }
+function drawMap(){
+  if(!T||!M||!C) return;
+  const {W,H,px,h,alb}=T; off.width=W; off.height=H;
+  const img=og.createImageData(W,H), d=img.data, P=C.P;
+  const ucol=UNIT_COLORS.map(hex);
+  let scoreGrid=null;
+  if(view==='score'){ scoreGrid=new Float32Array(W*H).fill(NaN); const s=C.stride;
+    const js=C.list.map(c=>c.joint), lo=Math.min(...js), hi=Math.max(...js);
+    for(const c of C.list) for(let y=c.y-s/2;y<c.y+s/2;y++) for(let x=c.x-s/2;x<c.x+s/2;x++){ const xx=Math.round(x),yy=Math.round(y); if(xx>=0&&yy>=0&&xx<W&&yy<H) scoreGrid[yy*W+xx]=c.ok?(c.joint-lo)/(hi-lo||1):-1; } }
+  for(let y=0;y<H;y++) for(let x=0;x<W;x++){
+    const i=y*W+x, xl=x>0?i-1:i, xr=x<W-1?i+1:i, yu=y>0?i-W:i, yd=y<H-1?i+W:i;
+    const dzx=(h[xr]-h[xl])/(2*px), dzy=(h[yd]-h[yu])/(2*px);
+    const shade=clamp(.62+(-dzx*.7-dzy*.7)*1.6,.08,1.15);
+    const a=alb?alb[i]:.5;
+    let c=[255*a*shade*1.25,205*a*shade*1.2,165*a*shade*1.1];
+    if(view==='slope'){ const s=M.slope[i]; const bad=s>=P.slopeLim||M.rough[i]>=P.roughLim;
+      const base=ramp([[40,90,70],[110,160,90],[220,200,90]],s/P.slopeLim); c=bad?(M.rough[i]>=P.roughLim&&s<P.slopeLim?[200,110,220]:[230,90,70]):base; c=c.map(v=>v*(.55+.45*shade)); }
+    else if(view==='units'){ const u=ucol[M.units[i]]; c=u.map(v=>v*(.55+.45*shade)); }
+    else if(view==='score'){ const v=scoreGrid[i]; const gray=110*shade; if(!(v>=0)) c=[gray*.6,gray*.6,gray*.65]; else c=ramp([[40,50,90],[60,130,170],[110,210,160],[242,200,90]],v).map(q=>q*(.6+.4*shade)); }
+    d[i*4]=clamp(c[0],0,255); d[i*4+1]=clamp(c[1],0,255); d[i*4+2]=clamp(c[2],0,255); d[i*4+3]=255;
+  }
+  og.putImageData(img,0,0);
+  const S=cv.width/W; g.imageSmoothingEnabled=true; g.drawImage(off,0,0,cv.width,cv.height);
+  // selected ellipse + traverse
+  if(sel){
+    const {eA,eB,rT}=C.ctx;
+    g.setLineDash([6,5]); g.strokeStyle='rgba(230,233,242,.85)'; g.lineWidth=1.5; g.beginPath(); g.arc(sel.x*S,sel.y*S,rT*S,0,Math.PI*2); g.stroke(); g.setLineDash([]);
+    g.strokeStyle='#f2b04a'; g.lineWidth=2.5; g.beginPath(); g.ellipse(sel.x*S,sel.y*S,eA*S,eB*S,0,0,Math.PI*2); g.stroke();
+  }
+  g.font='600 14px "IBM Plex Mono",monospace'; g.textAlign='center'; g.textBaseline='middle';
+  C.top.forEach(c=>{ const x=c.x*S,y=c.y*S, r=12;
+    g.fillStyle=c===sel?'#f2b04a':'rgba(10,15,27,.85)'; g.strokeStyle='#f2b04a'; g.lineWidth=2; g.beginPath(); g.arc(x,y,r,0,Math.PI*2); g.fill(); g.stroke();
+    g.fillStyle=c===sel?'#1a1206':'#f2b04a'; g.fillText(String(c.rank),x,y+1); });
+  if(sel&&!sel.rank){ g.fillStyle='#e6e9f2'; g.beginPath(); g.arc(sel.x*S,sel.y*S,5,0,Math.PI*2); g.fill(); }
+  // scale bar
+  const barM=1000, barPx=barM/px*S, bx=16, by=cv.height-22;
+  g.fillStyle='rgba(5,7,13,.7)'; g.fillRect(bx-8,by-18,barPx+70,30);
+  g.fillStyle='#e6e9f2'; g.fillRect(bx,by,barPx,4); g.textAlign='left'; g.font='500 12px "IBM Plex Mono",monospace'; g.fillText('1 km',bx+barPx+8,by+3);
+  // legend
+  const L=$('mapLegend');
+  if(view==='units') L.innerHTML=M.unitNames.map((n,u)=>`<span><i style="background:${UNIT_COLORS[u]}"></i>U${u+1} ${esc(n)} · ${pct(M.unitFrac[u])}</span>`).join('');
+  else if(view==='slope') L.innerHTML=`<span><i style="background:#5a9a66"></i>Gentle</span><span><i style="background:#dcc85a"></i>Near the slope limit</span><span><i style="background:#e65a46"></i>Too steep</span><span><i style="background:#c86edc"></i>Too rough</span>`;
+  else if(view==='score') L.innerHTML=`<span><i style="background:#28325a"></i>Low joint score</span><span><i style="background:#f2c85a"></i>High</span><span><i style="background:#555"></i>Fails required safe fraction</span>`;
+  else L.innerHTML=`<span><i style="background:#f2b04a"></i>Landing ellipse</span><span><i style="background:transparent;border:1.5px dashed #e6e9f2"></i>Traverse range</span>`;
+}
+function drawScatter(){
+  const W=420,H=300,L=40,R=12,Tp=12,B=36, X=v=>L+(W-L-R)*v, Y=v=>Tp+(H-Tp-B)*(1-v);
+  let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Candidate sites by safety and science value">`;
+  for(let i=0;i<=4;i++){ const v=i/4; s+=`<line x1="${X(0)}" x2="${X(1)}" y1="${Y(v)}" y2="${Y(v)}" stroke="rgba(150,168,210,.1)"/><text x="${L-6}" y="${Y(v)+4}" text-anchor="end" font-size="10" fill="#8a94ae">${v.toFixed(2)}</text><text x="${X(v)}" y="${H-20}" text-anchor="middle" font-size="10" fill="#8a94ae">${(v*100).toFixed(0)}%</text>`; }
+  s+=`<line x1="${X(C.P.minSafe)}" x2="${X(C.P.minSafe)}" y1="${Tp}" y2="${H-B}" stroke="#8a94ae" stroke-dasharray="3 3"/>`;
+  s+=`<text x="${(X(0)+X(1))/2}" y="${H-4}" text-anchor="middle" font-size="10.5" fill="#8a94ae">safe fraction of landing ellipse →</text>`;
+  s+=`<text transform="translate(11 ${(Y(0)+Y(1))/2}) rotate(-90)" text-anchor="middle" font-size="10.5" fill="#8a94ae">science value →</text>`;
+  const uc=v=>{ const c=ramp([[111,209,162],[233,207,92],[255,138,110]],v); return `rgb(${c.map(q=>q|0).join(',')})`; };
+  C.list.forEach(c=>{ if(c.ok) return; s+=`<circle cx="${X(c.safety).toFixed(1)}" cy="${Y(c.science).toFixed(1)}" r="1.6" fill="rgba(138,148,174,.25)"/>`; });
+  C.list.forEach(c=>{ if(!c.ok) return; s+=`<circle cx="${X(c.safety).toFixed(1)}" cy="${Y(c.science).toFixed(1)}" r="${c.pareto?3.2:2.2}" fill="${uc(c.unc)}" ${c.pareto?'stroke="#e6e9f2" stroke-width="1"':''}/>`; });
+  C.top.forEach(c=>{ s+=`<circle cx="${X(c.safety)}" cy="${Y(c.science)}" r="8" fill="${c===sel?'#f2b04a':'#0a0f1b'}" stroke="#f2b04a" stroke-width="1.5"/><text x="${X(c.safety)}" y="${Y(c.science)+3.5}" text-anchor="middle" font-size="10" font-weight="600" fill="${c===sel?'#1a1206':'#f2b04a'}">${c.rank}</text>`; });
+  if(sel&&!sel.rank) s+=`<circle cx="${X(sel.safety)}" cy="${Y(sel.science)}" r="5" fill="#e6e9f2"/>`;
+  s+='</svg>'; $('scatter').innerHTML=s;
+}
+function renderDetail(){
+  const c=sel, el=$('detailBody');
+  if(!c){ el.className='empty'; el.textContent='No site meets the required safe fraction. Relax the lander limits or lower the requirement.'; return; }
+  el.className='';
+  const P=C.P, px=T.px, xm=(c.x*px/1000).toFixed(2), ym=(c.y*px/1000).toFixed(2);
+  const reach=[...Array(M.K).keys()].filter(u=>c.counts[u]/c.tot>=.01).sort((a,b)=>c.counts[b]-c.counts[a]);
+  const rare=c.present.filter(u=>M.unitFrac[u]<.08);
+  let why=`${pct(c.safety)} of the ellipse is under ${P.slopeLim}° and smoother than ${P.roughLim} m. `;
+  why+=`A rover can reach ${c.present.length} of ${M.K} terrain units within ${(P.trav/1000).toFixed(1)} km`;
+  why+=rare.length?`, including ${rare.map(u=>'U'+(u+1)).join(' and ')}, which cover${rare.length===1?'s':''} under 8% of the map. `:'. ';
+  why+=c.unc>.5?'The safety estimate is fragile: small shifts of the ellipse or DEM errors could change it.':c.unc>.25?'Safety holds moderately well if the ellipse drifts.':'Safety barely changes if the ellipse drifts, so the estimate is robust.';
+  el.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px"><b style="font:400 15px/1 var(--f-display);letter-spacing:.06em">${c.rank?'SITE '+c.rank:'CUSTOM POINT'}</b><span class="pill ${c.ok?'good':'bad'}">${c.ok?'eligible':'below required safety'}</span></div>
+  <dl><dt>Safe fraction</dt><dd>${pct(c.safety,1)}</dd><dt>Science value</dt><dd>${fmt(c.science,3)}</dd><dt>Uncertainty</dt><dd>${fmt(c.unc,3)}</dd><dt>Joint score</dt><dd>${fmt(c.joint,3)}</dd>
+  <dt>Unit diversity</dt><dd>${fmt(c.div,2)}</dd><dt>Rarest unit reached</dt><dd>${fmt(c.rar,2)}</dd><dt>Ellipse drift spread</dt><dd>±${pct(c.jsd,1)}</dd><dt>Position</dt><dd>${xm} km E, ${ym} km S</dd></dl>
+  <p class="hint">${esc(why)}</p>
+  <div class="units">${reach.map(u=>`<div class="unit"><i style="background:${UNIT_COLORS[u]}"></i><span>U${u+1} ${esc(M.unitNames[u])}</span><span>${pct(c.counts[u]/c.tot)}</span></div>`).join('')}</div>`;
+}
+function renderTop(){
+  $('cands').innerHTML=C.top.map(c=>`<li><button aria-pressed="${c===sel}" data-r="${c.rank}"><span class="t">Site ${c.rank}<span>${fmt(c.joint,3)}</span></span><span class="m"><span>safe</span><b>${pct(c.safety)}</b><span>science</span><b>${fmt(c.science,2)}</b><span>uncertainty</span><b>${fmt(c.unc,2)}</b></span></button></li>`).join('')||'<li class="empty">No eligible sites with these limits.</li>';
+  [...$('cands').querySelectorAll('button')].forEach(b=>b.onclick=()=>{ sel=C.top[+b.dataset.r-1]; refresh(false); });
+  const el=C.list.filter(c=>c.ok).length;
+  $('stats').innerHTML=[
+    ['Safe terrain',pct(C.safeFrac),'of the map meets slope and roughness'],
+    ['Eligible sites',`${el}`,`of ${C.list.length} points scored`],
+    ['Pareto-optimal',`${C.list.filter(c=>c.pareto).length}`,'no other site beats them on all three'],
+    ['Terrain units',`${M.K}`,`${T.W}×${T.H} px · ${T.px} m/px · ${Math.round(C.ms)} ms`]
+  ].map(s=>`<div class="stat"><div class="k">${s[0]}</div><div class="n">${s[1]}</div><div class="s">${s[2]}</div></div>`).join('');
+}
+function refresh(re){ if(re) evaluate(); drawMap(); drawScatter(); renderDetail(); renderTop(); }
+
+/* ---------------- UI ---------------- */
+const fm={slopeLim:v=>v+'°',roughLim:v=>v.toFixed(2)+' m',ellA:v=>v+' m',trav:v=>(v/1000).toFixed(2)+' km',minSafe:v=>pct(v),wS:v=>v.toFixed(2),wSci:v=>v.toFixed(2),wU:v=>v.toFixed(2)};
+let deb=null;
+Object.keys(fm).forEach(id=>{ const el=$(id), o=$(id+'V'); const upd=()=>o.textContent=fm[id](+el.value); upd();
+  el.addEventListener('input',()=>{ upd(); clearTimeout(deb); deb=setTimeout(()=>{ sel=null; refresh(true); },180); }); });
+[...$('viewSeg').children].forEach(b=>b.onclick=()=>{ view=b.dataset.v; [...$('viewSeg').children].forEach(c=>c.setAttribute('aria-pressed',c===b)); drawMap(); });
+cv.addEventListener('click',e=>{
+  if(!C) return; const r=cv.getBoundingClientRect(), x=Math.round((e.clientX-r.left)/r.width*T.W), y=Math.round((e.clientY-r.top)/r.height*T.H);
+  const m=Math.ceil(C.ctx.eA)+1; sel=scoreAt(clamp(x,m,T.W-m-1),clamp(y,m,T.H-m-1),C.P,C.ctx);
+  const hit=C.top.find(t=>Math.hypot(t.x-x,t.y-y)<5); if(hit) sel=hit;
+  refresh(false);
+});
+function loadSample(){ T=makeTerrain(seed); derive(); sel=null; refresh(true); }
+$('btnNew').onclick=()=>{ seed=Math.floor(Math.random()*1e6); loadSample(); };
+[...$('srcSeg').children].forEach(b=>b.onclick=()=>{ src=b.dataset.src; [...$('srcSeg').children].forEach(c=>c.setAttribute('aria-pressed',c===b));
+  $('sampleBox').hidden=src!=='sample'; $('uploadBox').hidden=src!=='upload'; if(src==='sample') loadSample(); else loadUpload(); });
+async function loadUpload(){
+  const f=$('fileDem').files[0]; if(!f){ $('detailBody').className='empty'; $('detailBody').textContent='Choose a grayscale heightmap to analyze.'; return; }
+  try{
+    const img=await Lab.loadImage(f), dem=Lab.toGray(img,256);
+    const range=+$('upRange').value||400, px=(+$('upScale').value||20)*dem.scale;
+    const h=new Float32Array(dem.w*dem.h); for(let i=0;i<h.length;i++) h[i]=dem.data[i]*range;
+    let alb=null; const fi=$('fileImg').files[0];
+    if(fi){ const im2=await Lab.loadImage(fi); alb=Lab.toGray(im2,0,dem.w,dem.h).data; }
+    T={W:dem.w,H:dem.h,px,h,alb,synthetic:false,name:f.name}; derive(); sel=null; refresh(true);
+  }catch(e){ $('detailBody').className='empty'; $('detailBody').textContent=e.message; }
+}
+['fileDem','fileImg','upScale','upRange'].forEach(id=>$(id).addEventListener('change',loadUpload));
+loadSample();
+})();
+</script>
+</body>
+</html>
