@@ -159,34 +159,39 @@ svg text{font-family:var(--f-mono)}
 @keyframes pillIn{from{opacity:0;transform:scale(.85)}to{opacity:1;transform:none}}
 
 /* ===== narration: nav button + player dock ===== */
-.nav{display:flex;align-items:center}
-.nav .nav-in{flex:1 1 auto;min-width:0}
-.navlisten{flex:none;display:inline-flex;align-items:center;gap:9px;margin-left:8px;margin-right:max(14px,env(safe-area-inset-right,0px));padding:4px 14px 4px 4px;border-radius:999px;border:1px solid rgba(242,176,74,.45);background:rgba(15,22,38,.78);color:var(--fg);cursor:pointer;font:inherit;text-align:left;transition:border-color .25s,box-shadow .3s}
-.navlisten:hover{border-color:var(--sun);box-shadow:0 6px 26px -10px rgba(242,176,74,.65)}
-.navlisten .disc{position:relative;width:32px;height:32px;flex:none;display:grid;place-items:center}
-.navlisten .disc::before,.navlisten .disc::after{content:"";position:absolute;inset:0;border-radius:50%;border:1.5px solid rgba(242,176,74,.55);animation:halo 2.4s cubic-bezier(.2,.6,.3,1) infinite}
-.navlisten .disc::after{animation-delay:1.2s}
-.navlisten[aria-pressed="true"] .disc::before,.navlisten[aria-pressed="true"] .disc::after{animation:none;opacity:0}
-@keyframes halo{0%{transform:scale(.9);opacity:.9}100%{transform:scale(1.55);opacity:0}}
-.navlisten .disc .core{position:absolute;inset:3px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#ffe2a6,var(--sun) 55%,#c9832a);box-shadow:0 0 16px rgba(242,176,74,.5)}
-.navlisten .disc svg.ring{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg)}
-.navlisten .disc svg.ring circle{fill:none;stroke-width:2.2}
-.navlisten .disc .ico{position:relative;width:12px;height:12px;fill:#1a1206}
-.navlisten .lt{display:flex;flex-direction:column;gap:2px;line-height:1.1}
-.navlisten .lt b{font:600 13px/1.15 "Noto Sans Devanagari",var(--f-body);white-space:nowrap}
-.navlisten .lt small{font:400 10.5px/1 var(--f-mono);color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+/* nav listen button: voice-waveform pill that sits right after the last tab */
+.navlisten{position:relative;flex:none;display:inline-flex;align-items:center;gap:9px;height:34px;margin-left:2px;margin-right:max(14px,env(safe-area-inset-right,0px));padding:0 13px 0 11px;border-radius:9px;border:1px solid rgba(242,176,74,.42);background:linear-gradient(180deg,rgba(242,176,74,.12),rgba(242,176,74,.04));color:var(--fg);cursor:pointer;font:inherit;transition:border-color .25s,box-shadow .3s,background .3s}
+.navlisten::before{content:"";position:absolute;left:-9px;top:50%;width:1px;height:20px;margin-top:-10px;background:var(--line2)}
+.nav .nav-in+.navlisten{margin-left:4px}
+.navlisten:hover{border-color:var(--sun);box-shadow:0 0 0 3px rgba(242,176,74,.12),0 8px 26px -12px rgba(242,176,74,.7);background:linear-gradient(180deg,rgba(242,176,74,.2),rgba(242,176,74,.06))}
+.navlisten[aria-pressed="true"]{border-color:var(--sun);background:linear-gradient(180deg,rgba(242,176,74,.22),rgba(242,176,74,.08))}
+.navlisten .wave{display:inline-flex;align-items:center;gap:2.5px;height:18px;flex:none}
+.navlisten .wave i{display:block;width:3px;height:18px;border-radius:2px;background:linear-gradient(180deg,#ffe2a6,var(--sun));transform-origin:center;transform:scaleY(var(--h,.4))}
+.navlisten .wave i:nth-child(1){--h:.35}.navlisten .wave i:nth-child(2){--h:.7}.navlisten .wave i:nth-child(3){--h:1}.navlisten .wave i:nth-child(4){--h:.6}.navlisten .wave i:nth-child(5){--h:.3}
+.navlisten[aria-pressed="true"] .wave i{transform:scaleY(calc(.22 + var(--lv,.4) * var(--k,1)));transition:transform .08s linear}
+.navlisten .wave i:nth-child(1){--k:.55}.navlisten .wave i:nth-child(2){--k:.95}.navlisten .wave i:nth-child(3){--k:1.25}.navlisten .wave i:nth-child(4){--k:.85}.navlisten .wave i:nth-child(5){--k:.5}
+@media (prefers-reduced-motion:no-preference){.navlisten:not([aria-pressed="true"]) .wave i{animation:breathe 2.2s ease-in-out infinite}.navlisten .wave i:nth-child(2){animation-delay:.15s}.navlisten .wave i:nth-child(3){animation-delay:.3s}.navlisten .wave i:nth-child(4){animation-delay:.45s}.navlisten .wave i:nth-child(5){animation-delay:.6s}}
+@keyframes breathe{0%,100%{transform:scaleY(var(--h))}50%{transform:scaleY(calc(var(--h) * .45 + .1))}}
+.navlisten .lt{display:flex;align-items:baseline;gap:8px;line-height:1}
+.navlisten .lt b{font:600 13.5px/1 "Noto Sans Devanagari",var(--f-body);white-space:nowrap}
+.navlisten .lt small{font:500 10.5px/1 var(--f-mono);color:var(--sun);opacity:.85;font-variant-numeric:tabular-nums;white-space:nowrap}
+.navlisten .prog{position:absolute;left:8px;right:8px;bottom:3px;height:2px;border-radius:2px;overflow:hidden;background:rgba(242,176,74,.12)}
+.navlisten .prog i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--sun),#ffe2a6)}
 @media (max-width:720px){.navlisten .lt small{display:none}}
-@media (max-width:440px){.navlisten{padding:4px}.navlisten .lt{display:none}}
+@media (max-width:440px){.navlisten{padding:0 10px}.navlisten .lt{display:none}}
+
+.nav{display:flex;align-items:center}
+.nav .nav-in{flex:0 1 auto;min-width:0;padding-right:6px}
 .narr{position:fixed;z-index:35;left:0;right:0;margin-inline:auto;bottom:calc(16px + env(safe-area-inset-bottom,0px));width:min(820px,calc(100% - 24px));padding:14px 16px 12px;border:1px solid rgba(242,176,74,.35);border-radius:18px;background:linear-gradient(180deg,rgba(14,19,34,.92),rgba(6,9,18,.94));backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:0 30px 90px -30px rgba(242,176,74,.4),0 0 0 1px rgba(255,255,255,.02) inset;animation:dockIn .5s cubic-bezier(.2,.8,.2,1) both}
 @keyframes dockIn{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:none}}
 .narr:focus-visible{outline:2px solid var(--sun);outline-offset:3px}
 .narr-main{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:14px;align-items:center}
 .np{position:relative;width:52px;height:52px;border-radius:50%;border:0;padding:0;cursor:pointer;background:none;display:grid;place-items:center}
-.np .core{position:absolute;inset:5px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#ffe2a6,var(--sun) 55%,#c9832a);box-shadow:0 0 26px rgba(242,176,74,.5);transition:transform .2s}
+.np .core{position:absolute;inset:5px;border-radius:50%;background:radial-gradient(circle at 50% 35%,rgba(242,176,74,.22),rgba(10,15,27,.95) 70%);border:1px solid rgba(242,176,74,.55);transition:transform .2s,background .2s}
 .np:hover .core{transform:scale(1.06)}
 .np svg.ring{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg)}
 .np svg.ring circle{fill:none;stroke-width:3}
-.np .ico{position:relative;width:18px;height:18px;fill:#1a1206}
+.np .ico{position:relative;width:18px;height:18px;fill:#ffd68a}
 .narr-cap{min-width:0}
 .narr-line{margin:0;font:500 clamp(17px,2.3vw,25px)/1.45 var(--f-body);min-height:1.45em;text-wrap:balance}
 .narr-line[lang="hi"]{font-family:"Noto Sans Devanagari","Mangal","Kohinoor Devanagari",var(--f-body)}
@@ -212,5 +217,5 @@ svg text{font-family:var(--f-mono)}
 .seek:hover .hov{opacity:1}
 .narr-keys{margin:6px 0 0;font:400 10.5px/1.4 var(--f-mono);color:rgba(138,148,174,.7)}
 @media (max-width:620px){.narr-main{grid-template-columns:auto minmax(0,1fr)}.narr-side{grid-column:1/3;grid-row:1;flex-direction:row;justify-content:space-between;align-items:center}.narr-keys{display:none}.np{width:46px;height:46px}}
-@media (prefers-reduced-motion:reduce){.navlisten .disc::before,.navlisten .disc::after{animation:none}.narr{animation:none}}
+@media (prefers-reduced-motion:reduce){.narr{animation:none}}
 

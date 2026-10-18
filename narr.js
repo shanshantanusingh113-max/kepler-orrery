@@ -5,24 +5,24 @@ const NARR={hi:{src:"intro-hi.mp3",lang:"hi",caps:[[1.6, 2.65, "ऊपर दे
 
 function mount(){
   const nav=document.querySelector('.nav'); if(!nav||document.getElementById('listenBtn')) return;
-  nav.insertAdjacentHTML('beforeend','<button class="navlisten" id="listenBtn" type="button" aria-pressed="false" aria-label="हिन्दी में सुनिए, listen to a 58 second introduction to Solar System Lab"><span class="disc"><svg class="ring" viewBox="0 0 32 32" aria-hidden="true"><circle class="arc" cx="16" cy="16" r="14.5" stroke="#ffd68a" stroke-linecap="round" stroke-dasharray="91.1" stroke-dashoffset="91.1"/></svg><span class="core"></span><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path id="lbIco" d="M4.5 2.5v11l9-5.5z"/></svg></span><span class="lt"><b id="listenTxt">हिन्दी में सुनिए</b><small id="listenSub">Listen · 58 sec</small></span></button>');
+  nav.insertAdjacentHTML('beforeend','<button class="navlisten" id="listenBtn" type="button" aria-pressed="false" aria-label="हिन्दी में सुनिए, listen to a 58 second introduction to Solar System Lab"><span class="wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span><span class="lt"><b id="listenTxt">सुनिए</b><small id="listenSub">58s</small></span><span class="prog" aria-hidden="true"><i></i></span></button>');
   document.body.insertAdjacentHTML('beforeend','<section class="narr" id="narr" hidden tabindex="-1" aria-label="Project narration player">\n  <div class="narr-main">\n    <button class="np" id="narrPlay" type="button" aria-label="Pause"><svg class="ring" viewBox="0 0 52 52" aria-hidden="true"><circle cx="26" cy="26" r="24" stroke="rgba(242,176,74,.18)"/><circle class="arc" cx="26" cy="26" r="24" stroke="#ffd68a" stroke-linecap="round" stroke-dasharray="150.8" stroke-dashoffset="150.8"/></svg><span class="core"></span><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path id="npIco" d="M4 2h3v12H4zM9 2h3v12H9z"/></svg></button>\n    <div class="narr-cap"><p class="narr-line" id="narrLine" lang="hi" aria-live="polite"></p><p class="narr-sub" id="narrSub"></p></div>\n    <div class="narr-side">\n      <div class="seg" id="langSeg" role="group" aria-label="Narration language"><button data-l="hi" aria-pressed="true">हिन्दी</button><button data-l="en" aria-pressed="false">English</button></div>\n      <div class="row1">\n        <button class="ib2" id="narrPrev" type="button" aria-label="Previous sentence"><svg viewBox="0 0 16 16"><path d="M3 2h2v12H3zM14 2v12L6 8z"/></svg></button>\n        <button class="ib2" id="narrNext" type="button" aria-label="Next sentence"><svg viewBox="0 0 16 16"><path d="M11 2h2v12h-2zM2 2v12l8-6z"/></svg></button>\n        <button class="ib2" id="narrClose" type="button" aria-label="Close player"><svg viewBox="0 0 16 16"><path d="M3.5 2.1 8 6.6l4.5-4.5 1.4 1.4L9.4 8l4.5 4.5-1.4 1.4L8 9.4l-4.5 4.5-1.4-1.4L6.6 8 2.1 3.5z"/></svg></button>\n      </div>\n    </div>\n  </div>\n  <canvas class="narr-viz" id="narrViz" aria-hidden="true"></canvas>\n  <div class="narr-seek"><span id="narrCur">0:00</span><div class="seek" id="seek" role="slider" tabindex="0" aria-label="Seek" aria-valuemin="0" aria-valuemax="58" aria-valuenow="0"><div class="track"></div><div class="fill" id="seekFill"></div><div id="seekTicks"></div><div class="knob" id="seekKnob"></div><div class="hov" id="seekHov">0:00</div></div><span id="narrDur">0:58</span></div>\n  <p class="narr-keys">Space play/pause · ← → previous/next sentence · Esc close</p>\n</section>\n<audio id="narrAudio" preload="metadata"></audio>');
   const $=id=>document.getElementById(id);
 (function(){
   const au=$('narrAudio'), btn=$('listenBtn'), box=$('narr'), line=$('narrLine'), sub=$('narrSub');
   const PLAY='M4.5 2.5v11l9-5.5z', PAUSE='M4 2h3v12H4zM9 2h3v12H9z';
-  const arcs=[btn.querySelector('.arc'),box.querySelector('.np .arc')];
+  const arcs=[btn.querySelector('.prog i'),box.querySelector('.np .arc')];
   let lang='hi', idx=-1, words=[], prevSpeed=null, actx=null, an=null, freq=null, silentFrames=0, raf=null;
   const fmt=t=>{ t=Math.max(0,t||0); return Math.floor(t/60)+':'+String(Math.floor(t%60)).padStart(2,'0'); };
   const caps=()=>NARR[lang].caps, dur=()=>au.duration||caps()[caps().length-1][1]+3;
   function buildTicks(){ const T=$('seekTicks'); T.innerHTML=caps().map(c=>`<i class="tick" style="left:${(c[0]/dur()*100).toFixed(2)}%"></i>`).join(''); $('narrDur').textContent=fmt(dur()); $('seek').setAttribute('aria-valuemax',Math.round(dur())); }
   function load(l){ const was=!au.paused&&!au.ended; au.pause(); lang=l; au.src=NARR[l].src; line.lang=NARR[l].lang; idx=-1; line.innerHTML=''; sub.textContent='';
     [...$('langSeg').children].forEach(b=>b.setAttribute('aria-pressed',b.dataset.l===l));
-    $('listenTxt').textContent=l==='hi'?'हिन्दी में सुनिए':'Listen in English'; $('listenSub').textContent=l==='hi'?'Listen · 58 sec':'सुनिए · 50 sec';
+    $('listenTxt').textContent=l==='hi'?'सुनिए':'Listen'; $('listenSub').textContent=l==='hi'?'58s':'50s';
     buildTicks(); render(); if(was) play(); }
   au.addEventListener('loadedmetadata',buildTicks);
   function cinematic(on){ if(typeof window.__narrCinematic==='function') window.__narrCinematic(on); }
-  function setIcons(playing){ $('lbIco').setAttribute('d',playing?PAUSE:PLAY); $('npIco').setAttribute('d',playing?PAUSE:PLAY); $('narrPlay').setAttribute('aria-label',playing?'Pause':'Play'); btn.setAttribute('aria-pressed',playing); }
+  function setIcons(playing){ btn.setAttribute('aria-label',playing?'Pause narration':'हिन्दी में सुनिए, listen to a 58 second introduction to Solar System Lab'); $('npIco').setAttribute('d',playing?PAUSE:PLAY); $('narrPlay').setAttribute('aria-label',playing?'Pause':'Play'); btn.setAttribute('aria-pressed',playing); }
   function initAudioGraph(){ if(actx) return; try{ actx=new (window.AudioContext||window.webkitAudioContext)(); const src=actx.createMediaElementSource(au); an=actx.createAnalyser(); an.fftSize=256; an.smoothingTimeConstant=.78; src.connect(an); an.connect(actx.destination); freq=new Uint8Array(an.frequencyBinCount); }catch(e){ actx=null; an=null; } }
   function play(){ box.hidden=false; initAudioGraph(); if(actx&&actx.state==='suspended') actx.resume();
     if(au.ended) au.currentTime=0;
@@ -57,8 +57,8 @@ function mount(){
     if(k!==idx) setLine(k);
     words.forEach((w,i)=>{ const on=t>=w.t-.02, nx=words[i+1]; w.el.classList.toggle('on',on); w.el.classList.toggle('now',on&&(!nx||t<nx.t)&&k>=0&&t<=c[k][1]+.15); });
     const f=Math.min(1,t/D); $('seekFill').style.width=(f*100)+'%'; $('seekKnob').style.left=(f*100)+'%'; $('narrCur').textContent=fmt(t); seek.setAttribute('aria-valuenow',Math.round(t));
-    arcs[0].style.strokeDashoffset=(91.1*(1-f)).toFixed(1); arcs[1].style.strokeDashoffset=(150.8*(1-f)).toFixed(1);
-    if(!au.paused) $('listenSub').textContent=`${fmt(t)} / ${fmt(D)}`; }
+    arcs[0].style.width=(f*100).toFixed(2)+'%'; arcs[1].style.strokeDashoffset=(150.8*(1-f)).toFixed(1);
+    if(!au.paused) $('listenSub').textContent=fmt(t); }
   // visualizer
   const cv=$('narrViz'), g=cv.getContext('2d');
   function drawViz(){ const d=Math.min(2,devicePixelRatio||1), W=Math.round(cv.clientWidth*d), H=Math.round(cv.clientHeight*d); if(cv.width!==W||cv.height!==H){ cv.width=W; cv.height=H; }
@@ -70,10 +70,11 @@ function mount(){
       if(real){ const bin=Math.floor(2+m*freq.length*.5); v=Math.min(1,freq[bin]/255*1.15); }
       else v=au.paused?.04:(speaking?(.25+.55*Math.abs(Math.sin(now*9+i*.7)*Math.sin(now*3.3+i*.31))):.06)*(1-m*.6);
       const h=Math.max(2*d,v*H*.95), x=i*bw+bw*.2; g.globalAlpha=.35+.65*v; g.fillRect(x,(H-h)/2,bw*.6,h); }
-    g.globalAlpha=1; }
+    g.globalAlpha=1;
+    let lv=.08; if(real){ let s2=0; for(let i=2;i<40;i++) s2+=freq[i]; lv=Math.min(1,s2/38/170); } else if(speaking) lv=.35+.4*Math.abs(Math.sin(now*8)); btn.style.setProperty('--lv',lv.toFixed(3)); }
   function loop(){ cancelAnimationFrame(raf); const step=()=>{ render(); drawViz(); if(!au.paused&&!box.hidden) raf=requestAnimationFrame(step); }; raf=requestAnimationFrame(step); }
   au.addEventListener('pause',()=>{ render(); drawViz(); });
-  au.addEventListener('ended',()=>{ setIcons(false); cinematic(false); $('listenSub').textContent='Play again · '+fmt(dur()); $('npIco').setAttribute('d','M8 2.5a5.5 5.5 0 1 1-5.2 3.7l1.5.5A4 4 0 1 0 8 4v2L4.8 3.3 8 .5z'); $('narrPlay').setAttribute('aria-label','Replay'); });
+  au.addEventListener('ended',()=>{ setIcons(false); cinematic(false); $('listenSub').textContent='↻'; $('npIco').setAttribute('d','M8 2.5a5.5 5.5 0 1 1-5.2 3.7l1.5.5A4 4 0 1 0 8 4v2L4.8 3.3 8 .5z'); $('narrPlay').setAttribute('aria-label','Replay'); });
   load('hi');
 })();
 }
