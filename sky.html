@@ -11,6 +11,11 @@
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="icon" href="favicon-32.png" sizes="32x32" type="image/png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Solar Lab">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Solar System Lab">
 <meta property="og:title" content="आज रात का आसमान · Tonight's Sky · Solar System Lab">
@@ -106,6 +111,8 @@
         <div class="field"><select id="city" aria-label="City"></select></div>
         <button class="btn" id="locBtn" type="button" style="width:100%">📍 मेरी जगह · Use my location</button>
         <p class="locmsg" id="locMsg" hidden></p>
+        <button class="btn primary" id="pointBtn" type="button" style="width:100%;margin-top:8px">📱 फ़ोन आसमान की ओर · Point your phone</button>
+        <p class="hint" style="margin:6px 0 0">Hold your phone up and it shows which planet or star is in front of you.</p>
         <div class="divider"></div>
         <h2>तारीख · Date</h2>
         <div class="field"><input type="date" id="date" aria-label="Date"></div>
@@ -145,9 +152,11 @@
   <p class="foot">Positions from JPL Keplerian elements and a simplified lunar theory: rise and set times are good to about 2 minutes for planets and a few minutes for the Moon, slightly later at a high horizon. Times assume a flat, clear horizon.</p>
 </main>
 
+<script src="app.js"></script>
 <script src="lab.js"></script>
 <script src="narr.js"></script>
 <script src="sky-engine.js"></script>
+<script src="skypoint.js"></script>
 <script>
 (function(){
 "use strict";
@@ -370,6 +379,8 @@ $('locBtn').onclick=()=>{ const msg=$('locMsg'); msg.hidden=false;
     ()=>{ msg.textContent='Location was not shared. Pick the nearest city from the list instead.'; },{timeout:10000,maximumAge:6e5}); };
 run();
 })();
+
+document.getElementById('pointBtn').addEventListener('click',()=>SkyPoint.open());
 </script>
 </body>
 </html>

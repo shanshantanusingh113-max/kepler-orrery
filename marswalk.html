@@ -11,6 +11,11 @@
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="icon" href="favicon-32.png" sizes="32x32" type="image/png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Solar Lab">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Solar System Lab">
 <meta property="og:title" content="Marswalk Planner · Solar System Lab">
@@ -210,12 +215,14 @@
   <p class="foot">About the data: the Mars clock (season, local solar time, sunrise, Perseverance sol) uses NASA GISS Mars24 equations, and the Earth–Mars distance uses JPL orbital elements. The regional relief is live MOLA data from <a href="https://trek.nasa.gov/mars/" target="_blank" rel="noopener">NASA Mars Trek</a>. The 8 km map is a modeled reconstruction of western Jezero built from published mission results: the delta front, Séítah, Máaz, Kodiak and Belva are where the missions put them, but positions are approximate and the 25 m terrain is synthetic. Weather values are a climatology model fitted to Perseverance MEDA ranges, not today's measured report. Real rasters for each layer: <a href="https://www.uahirise.org/dtm/" target="_blank" rel="noopener">HiRISE DTMs</a>, the <a href="https://www.usgs.gov/media/images/m20jezerocraterctxdemmosaic20m100jpg" target="_blank" rel="noopener">USGS Jezero CTX DEM</a>, and the <a href="https://pds-geosciences.wustl.edu/" target="_blank" rel="noopener">PDS Geosciences Node</a>. Not for real mission use.</p>
 </main>
 
+<script src="app.js"></script>
 <script src="lab.js"></script>
 <script src="narr.js"></script>
 <script>
 (function(){
 "use strict";
 const {$,clamp,noise,rng,esc}=Lab;
+const T=(en,hi)=>window.App?App.t(en,hi):en;
 const D=Math.PI/180;
 const smooth=t=>{t=clamp(t,0,1);return t*t*(3-2*t);};
 
@@ -591,11 +598,11 @@ function drawLegend(){
 function statsHTML(){
   const ok=R.failLeg<0, verdict=checks().verdict;
   const s=[
-    ['Distance',ok?(R.dist/1000).toFixed(2)+' km':'—',ok?`${R.arrive.length} stop${R.arrive.length===1?'':'s'}`:'route blocked'],
-    ['EVA length',ok?dur(R.total/60):'—',`limit ${P.evaMax} h`],
+    ['Distance',ok?(R.dist/1000).toFixed(2)+' km':'—',ok?T(`${R.arrive.length} stop${R.arrive.length===1?'':'s'}`,`${R.arrive.length} पड़ाव`):T('route blocked','रास्ता बंद')],
+    ['EVA length',ok?dur(R.total/60):'—',T(`limit ${P.evaMax} h`,`सीमा ${P.evaMax} घंटे`)],
     ['Walk-back margin',ok&&isFinite(R.minMargin)?Math.round(R.minMargin)+' min':'—','tightest point'],
-    ['Radio contact',ok?Math.round(R.commPct*100)+'%':'—',`longest gap ${Math.round(R.maxGap/60)} min`],
-    ['Science return',ok?R.sci+'/100':'—',`${R.units.length} rock unit${R.units.length===1?'':'s'}`],
+    ['Radio contact',ok?Math.round(R.commPct*100)+'%':'—',T(`longest gap ${Math.round(R.maxGap/60)} min`,`सबसे लंबा अंतराल ${Math.round(R.maxGap/60)} मिनट`)],
+    ['Science return',ok?R.sci+'/100':'—',T(`${R.units.length} rock unit${R.units.length===1?'':'s'}`,`${R.units.length} चट्टान इकाइयाँ`)],
     ['Decision',verdict[0],verdict[1]]
   ];
   $('stats').innerHTML=s.map(x=>`<div class="stat"><div class="k">${x[0]}</div><div class="n">${x[1]}</div><div class="s">${x[2]}</div></div>`).join('');
@@ -603,16 +610,16 @@ function statsHTML(){
 function checks(){
   const L=[]; const add=(st,t,s)=>L.push([st,t,s]);
   if(!stops.length){ return {list:[['info','Add at least one stop','Pick a target or click the map.']],verdict:['—','no stops']}; }
-  if(R.failLeg>=0) add('bad','Terrain blocks the route',`Leg ${R.failLeg} has no path under ${P.slopeLim}°. Raise the slope limit or move the stop.`);
-  else add(R.maxSlope>P.slopeLim*0.85?'warn':'good','Terrain',`Steepest ground on the route ${R.maxSlope.toFixed(1)}° (limit ${P.slopeLim}°).`);
+  if(R.failLeg>=0) add('bad','Terrain blocks the route',T(`Leg ${R.failLeg} has no path under ${P.slopeLim}°. Raise the slope limit or move the stop.`,`हिस्से ${R.failLeg} में ${P.slopeLim}° से कम ढलान वाला रास्ता नहीं। ढलान सीमा बढ़ाएँ या पड़ाव बदलें।`));
+  else add(R.maxSlope>P.slopeLim*0.85?'warn':'good','Terrain',T(`Steepest ground on the route ${R.maxSlope.toFixed(1)}° (limit ${P.slopeLim}°).`,`रास्ते पर सबसे तेज़ ढलान ${R.maxSlope.toFixed(1)}° (सीमा ${P.slopeLim}°)।`));
   if(R.failLeg<0){
-    add(R.minMargin<0?'bad':R.minMargin<20?'warn':'good','Walk-back rule',R.minMargin<0?`At ${dur(R.minMarginT/60)} into the EVA the walker could not get home with ${Math.round(P.reserve*100)}% oxygen in reserve.`:`Never less than ${Math.round(R.minMargin)} min of spare walking time.`);
-    add(R.total/3600>P.evaMax?'bad':'good','EVA length',`${dur(R.total/60)} of ${P.evaMax} h allowed. Oxygen at the end ${Math.max(0,R.o2End).toFixed(2)} kg of ${P.o2.toFixed(2)}.`);
-    add(R.minSun<5?'bad':R.minSun<15?'warn':'good','Daylight',`Sun never lower than ${Math.round(R.minSun)}° during the walk (ends ${hm(P.tStart+R.total/3600)} local solar time).`);
-    add(R.maxGap>20*60?'warn':'good','Radio contact with camp',R.maxGap>20*60?`Out of line of sight for ${Math.round(R.maxGap/60)} min in a row. Drop a relay beacon on the delta, or time it with an orbiter pass.`:`In contact ${Math.round(R.commPct*100)}% of the time; longest gap ${Math.round(R.maxGap/60)} min.`);
-    add(R.tau>1.2?'bad':R.tau>0.75?'warn':'good','Dust in the air',`Optical depth about ${R.tau.toFixed(2)}. ${R.clk.Ls>=180&&R.clk.Ls<=330?'Dust storm season: check orbiter weather imaging (MARCI) the morning of the EVA.':'Outside dust storm season.'}`);
-    add(R.minT<-70?'warn':'good','Cold',`Air from ${Math.round(R.minT)} °C to ${Math.round(R.maxT)} °C along the walk. Suit battery at the end ${Math.round(clamp(R.batEnd/1.4,0,1)*100)}%.`);
-    add('good','Radiation',`About ${Math.round(R.dose*1000)} µSv for this EVA, about ${Math.round(R.dose/0.55*100)}% of one sol's surface dose. Abort to camp if a solar particle event is forecast.`);
+    add(R.minMargin<0?'bad':R.minMargin<20?'warn':'good','Walk-back rule',R.minMargin<0?T(`At ${dur(R.minMarginT/60)} into the EVA the walker could not get home with ${Math.round(P.reserve*100)}% oxygen in reserve.`,`EVA के ${dur(R.minMarginT/60)} बाद ${Math.round(P.reserve*100)}% भंडार के साथ घर लौटना संभव नहीं।`):T(`Never less than ${Math.round(R.minMargin)} min of spare walking time.`,`कभी भी ${Math.round(R.minMargin)} मिनट से कम अतिरिक्त समय नहीं।`));
+    add(R.total/3600>P.evaMax?'bad':'good','EVA length',T(`${dur(R.total/60)} of ${P.evaMax} h allowed. Oxygen at the end ${Math.max(0,R.o2End).toFixed(2)} kg of ${P.o2.toFixed(2)}.`,`${P.evaMax} घंटे में से ${dur(R.total/60)}। अंत में ऑक्सीजन ${Math.max(0,R.o2End).toFixed(2)} किलो (${P.o2.toFixed(2)} में से)।`));
+    add(R.minSun<5?'bad':R.minSun<15?'warn':'good','Daylight',T(`Sun never lower than ${Math.round(R.minSun)}° during the walk (ends ${hm(P.tStart+R.total/3600)} local solar time).`,`यात्रा में सूर्य कभी ${Math.round(R.minSun)}° से नीचे नहीं (समाप्ति ${hm(P.tStart+R.total/3600)} स्थानीय सौर समय)।`));
+    add(R.maxGap>20*60?'warn':'good','Radio contact with camp',R.maxGap>20*60?T(`Out of line of sight for ${Math.round(R.maxGap/60)} min in a row. Drop a relay beacon on the delta, or time it with an orbiter pass.`,`लगातार ${Math.round(R.maxGap/60)} मिनट संपर्क से बाहर। डेल्टा पर रिले बीकन रखें या ऑर्बिटर के गुज़रने के समय चलें।`):T(`In contact ${Math.round(R.commPct*100)}% of the time; longest gap ${Math.round(R.maxGap/60)} min.`,`${Math.round(R.commPct*100)}% समय संपर्क में; सबसे लंबा अंतराल ${Math.round(R.maxGap/60)} मिनट।`));
+    add(R.tau>1.2?'bad':R.tau>0.75?'warn':'good','Dust in the air',T(`Optical depth about ${R.tau.toFixed(2)}. ${R.clk.Ls>=180&&R.clk.Ls<=330?'Dust storm season: check orbiter weather imaging (MARCI) the morning of the EVA.':'Outside dust storm season.'}`,`प्रकाशीय गहराई लगभग ${R.tau.toFixed(2)}। ${R.clk.Ls>=180&&R.clk.Ls<=330?'धूल आँधी का मौसम: EVA की सुबह ऑर्बिटर मौसम तस्वीरें (MARCI) देखें।':'धूल आँधी का मौसम नहीं।'}`));
+    add(R.minT<-70?'warn':'good','Cold',T(`Air from ${Math.round(R.minT)} °C to ${Math.round(R.maxT)} °C along the walk. Suit battery at the end ${Math.round(clamp(R.batEnd/1.4,0,1)*100)}%.`,`यात्रा में हवा ${Math.round(R.minT)} °C से ${Math.round(R.maxT)} °C। अंत में सूट बैटरी ${Math.round(clamp(R.batEnd/1.4,0,1)*100)}%।`));
+    add('good','Radiation',T(`About ${Math.round(R.dose*1000)} µSv for this EVA, about ${Math.round(R.dose/0.55*100)}% of one sol's surface dose. Abort to camp if a solar particle event is forecast.`,`इस EVA में लगभग ${Math.round(R.dose*1000)} µSv, एक सॉल की सतही खुराक का लगभग ${Math.round(R.dose/0.55*100)}%। सौर कण घटना की चेतावनी हो तो कैंप लौटें।`));
   }
   const bad=L.some(x=>x[0]==='bad'), warn=L.some(x=>x[0]==='warn');
   return {list:L,verdict:bad?['NO-GO','fix the red items']:warn?['GO','with cautions']:['GO','all checks clear']};

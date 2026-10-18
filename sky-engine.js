@@ -97,5 +97,32 @@ Sky.crossings=function(times,series,h){
 /* ecliptic line for the sky chart */
 Sky.ecliptic=function(jd,lat,lon){ const pts=[]; for(let L=0;L<=360;L+=4){ const v=[Math.cos(L*D2R),Math.sin(L*D2R),0], q=radec(toEq(v,jd)); pts.push(Sky.altaz(q.ra,q.dec,jd,lat,lon)); } return pts; };
 
+/* shared helpers for other pages */
+Sky.toEq=toEq; Sky.radec=radec; Sky.gmst=gmst;
+Sky.altazOf=function(v,jd,lat,lon){ const q=radec(toEq(v,jd)); return Sky.altaz(q.ra,q.dec,jd,lat,lon); };
+/* Moon seen from a place: topocentric vector (Earth radii, ecliptic of date) */
+Sky.moonTopo=function(jd,lat,lon){
+  const m=Sky.moon(jd), th=gmst(jd)+lon*D2R, f=lat*D2R;
+  const oq=[Math.cos(f)*Math.cos(th),Math.cos(f)*Math.sin(th),Math.sin(f)];          // observer, equatorial
+  const T=(jd-2451545)/36525, e=(23.439291-0.0130042*T)*D2R, c=Math.cos(e), s=Math.sin(e);
+  const o=[oq[0], oq[1]*c+oq[2]*s, -oq[1]*s+oq[2]*c];                                 // to ecliptic
+  return {v:[m.v[0]-o[0],m.v[1]-o[1],m.v[2]-o[2]],geo:m};
+};
+Sky.IST=330;
+Sky.CITIES=[
+ ['New Delhi','नई दिल्ली',28.6139,77.2090],['Ghaziabad','गाज़ियाबाद',28.6692,77.4538],['Noida','नोएडा',28.5355,77.3910],['Gurugram','गुरुग्राम',28.4595,77.0266],
+ ['Mumbai','मुंबई',19.0760,72.8777],['Kolkata','कोलकाता',22.5726,88.3639],['Chennai','चेन्नई',13.0827,80.2707],['Bengaluru','बेंगलुरु',12.9716,77.5946],
+ ['Hyderabad','हैदराबाद',17.3850,78.4867],['Pune','पुणे',18.5204,73.8567],['Ahmedabad','अहमदाबाद',23.0225,72.5714],['Jaipur','जयपुर',26.9124,75.7873],
+ ['Lucknow','लखनऊ',26.8467,80.9462],['Patna','पटना',25.5941,85.1376],['Bhopal','भोपाल',23.2599,77.4126],['Chandigarh','चंडीगढ़',30.7333,76.7794],
+ ['Varanasi','वाराणसी',25.3176,82.9739],['Bhubaneswar','भुवनेश्वर',20.2961,85.8245],['Guwahati','गुवाहाटी',26.1445,91.7362],['Kochi','कोच्चि',9.9312,76.2673],
+ ['Thiruvananthapuram','तिरुवनंतपुरम',8.5241,76.9366],['Srinagar','श्रीनगर',34.0837,74.7973],['Dehradun','देहरादून',30.3165,78.0322],['Raipur','रायपुर',21.2514,81.6296],
+ ['Ranchi','रांची',23.3441,85.3096],['Indore','इंदौर',22.7196,75.8577],['Nagpur','नागपुर',21.1458,79.0882],['Leh (dark skies)','लेह (अँधेरा आसमान)',34.1526,77.5771],
+ ['Sriharikota (ISRO)','श्रीहरिकोटा (इसरो)',13.7199,80.2304],['Hanle Observatory','हान्ले वेधशाला',32.7794,78.9642]
+].map(c=>({en:c[0],hi:c[1],lat:c[2],lon:c[3]}));
+Sky.HI={Mercury:'बुध',Venus:'शुक्र',Mars:'मंगल',Jupiter:'बृहस्पति',Saturn:'शनि',Uranus:'अरुण',Neptune:'वरुण',Moon:'चंद्रमा',Sun:'सूर्य'};
+/* the city saved by Tonight's Sky, shared by the other pages */
+Sky.savedCity=function(){ try{ const s=JSON.parse(localStorage.getItem('sky-city')||'null'); if(s&&s.lat!==undefined) return Sky.CITIES.find(c=>c.en===s.en)||s; }catch(e){} return Sky.CITIES[0]; };
+Sky.saveCity=function(c){ try{ localStorage.setItem('sky-city',JSON.stringify(c)); }catch(e){} };
+
 window.Sky=Sky;
 })();
