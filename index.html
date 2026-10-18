@@ -29,7 +29,7 @@ html,body{background:#04060c}
 .nav{z-index:40}
 
 /* hero */
-.hero{min-height:min(92svh,900px);display:grid;grid-template-columns:minmax(0,1fr) minmax(0,.62fr);gap:24px;align-items:center;padding-block:clamp(40px,8vh,90px) 24px;position:relative}
+.hero{min-height:min(92svh,900px);display:grid;grid-template-columns:minmax(0,760px);gap:24px;align-items:center;padding-block:clamp(40px,8vh,90px) 24px;position:relative}
 .hero h1{margin:0;font:400 clamp(34px,6.4vw,84px)/1.0 var(--f-display);letter-spacing:.005em;text-shadow:0 2px 30px rgba(4,6,12,.8)}
 .hero h1 .w{display:inline-block;white-space:nowrap}
 .hero h1 .ch{display:inline-block;animation:chIn .9s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(var(--k)*38ms + .15s)}
@@ -196,18 +196,6 @@ html,body{background:#04060c}
         <button class="btn big listen" id="listenBtn" type="button" aria-pressed="false"><span class="eq" aria-hidden="true"><i></i><i></i><i></i><i></i></span><span id="listenTxt">सुनिए · Listen</span><small>58s</small></button>
       </div>
     </div>
-    <aside class="hud" aria-label="Simulation controls">
-      <div class="live"><i></i>LIVE SIMULATION</div>
-      <div class="date" id="simDate">—</div>
-      <div class="sub" id="simSub">Started from today's real positions</div>
-      <div class="seg" id="speedSeg" role="group" aria-label="Simulation speed">
-        <button data-s="0" aria-pressed="false">Pause</button>
-        <button data-s="1" aria-pressed="false">1 day/s</button>
-        <button data-s="7" aria-pressed="true">1 wk/s</button>
-        <button data-s="30" aria-pressed="false">1 mo/s</button>
-      </div>
-      <div class="hint"><span style="color:var(--sun)">●</span> Hover a planet for live distance and speed</div>
-    </aside>
     <div class="scrollcue" aria-hidden="true"><span></span>SCROLL TO FLY</div>
   </section>
 
@@ -359,7 +347,7 @@ const NARR={hi:{src:"intro-hi.mp3",lang:"hi",caps:[[1.6, 2.65, "ऊपर दे
   function load(l){ lang=l; au.src=NARR[l].src; line.lang=NARR[l].lang; idx=-1; line.textContent=''; sub.textContent='';
     [...$('langSeg').children].forEach(b=>b.setAttribute('aria-pressed',b.dataset.l===l)); $('listenTxt').textContent=l==='hi'?'सुनिए · Listen':'Listen · सुनिए'; btn.querySelector('small').textContent=l==='hi'?'58s':'50s'; }
   function cinematic(on){ window.__cine=on; if(on){ if(prevSpeed===null) prevSpeed=sim.speed; sim.speed=30; } else if(prevSpeed!==null){ sim.speed=prevSpeed; prevSpeed=null; }
-    document.querySelectorAll('#speedSeg button').forEach(b=>b.setAttribute('aria-pressed',+b.dataset.s===sim.speed)); }
+ }
   function play(){ box.hidden=false; btn.setAttribute('aria-pressed','true'); const p=au.play(); if(p&&p.catch) p.catch(()=>{ sub.textContent='Your browser blocked audio. Tap Listen again.'; stop(true); }); cinematic(true); }
   function stop(keepBox){ au.pause(); btn.setAttribute('aria-pressed','false'); cinematic(false); if(!keepBox) box.hidden=true; }
   btn.onclick=()=>{ if(!au.src) load('hi'); if(au.paused) play(); else stop(true); };
@@ -405,7 +393,7 @@ const mapR=r=>12+24*Math.pow(r,.6);
 const toScene=(v,out)=>{ const x=v[0]!==undefined?v[0]:v.x, y=v[1]!==undefined?v[1]:v.y, z=v[2]!==undefined?v[2]:v.z; const r=Math.hypot(x,y,z), k=r>0?mapR(r)/r:0; return (out||new THREE.Vector3()).set(x*k,z*k,-y*k); };
 
 if(hasGL) initScene();
-else $('simSub').textContent='3D needs WebGL, which this browser has turned off.';
+
 
 function initScene(){
   const canvas=$('cosmos');
@@ -461,8 +449,6 @@ function initScene(){
   addEventListener('resize',resize); resize();
 
   // speed control
-  const seg=$('speedSeg');
-  [...seg.children].forEach(b=>{ b.setAttribute('aria-pressed',+b.dataset.s===sim.speed); b.onclick=()=>{ sim.speed=+b.dataset.s; [...seg.children].forEach(x=>x.setAttribute('aria-pressed',x===b)); }; });
 
   const ray=new THREE.Raycaster(), ndc=new THREE.Vector2(), tmp=new THREE.Vector3(), look=new THREE.Vector3();
   const tip=$('tip'); let hovered=null;
@@ -507,8 +493,7 @@ function initScene(){
         el.style.opacity=on?(extra===undefined?1:extra):0; if(on) el.style.transform=`translate(${((tmp.x+1)/2*W+10).toFixed(1)}px,${((1-tmp.y)/2*H-dy).toFixed(1)}px)`; };
       bodies.forEach(b=>{ const retro=b.p!==EARTH&&L.isRetro(b.p,sim.jd); b.lab.classList.toggle('retro',retro); b.lab.lastChild.textContent=b.p.name+(retro?' · retro':''); place(b.lab,b.obj.position,8); });
       place(sunLab,sun.position,14); place(cometLab,cs.pos,6,cs.active>.15?.9:0);
-      sim.jdShown=sim.jd; $('simDate').textContent=fmtDate(sim.jd);
-      $('simSub').textContent=Math.abs(sim.jd-today)<1?'Today’s real positions':`${Math.round(sim.jd-today).toLocaleString()} days after today`;
+      sim.jdShown=sim.jd;
     }
     // hover
     const tgt=mouse.target, blocked=!tgt||(tgt.closest&&tgt.closest('a,button,.glass,.hud,p,h1,h2,h3,.nav,.todaynote'));
