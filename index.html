@@ -136,57 +136,6 @@ html,body{background:#04060c}
 .sitefoot ul{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:6px 18px}
 
 
-/* narration */
-.listen{display:inline-flex;align-items:center;gap:12px;padding:6px 18px 6px 6px;border-radius:999px;border:1px solid rgba(242,176,74,.45);background:rgba(8,12,22,.7);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);color:var(--fg);cursor:pointer;text-align:left;font:inherit;transition:border-color .25s,box-shadow .3s,transform .2s}
-.listen:hover{border-color:var(--sun);box-shadow:0 10px 40px -12px rgba(242,176,74,.6);transform:translateY(-1px)}
-.listen .disc{position:relative;width:44px;height:44px;flex:none;display:grid;place-items:center}
-.listen .disc::before,.listen .disc::after{content:"";position:absolute;inset:0;border-radius:50%;border:2px solid rgba(242,176,74,.55);animation:halo 2.4s cubic-bezier(.2,.6,.3,1) infinite}
-.listen .disc::after{animation-delay:1.2s}
-.listen[aria-pressed="true"] .disc::before,.listen[aria-pressed="true"] .disc::after{animation:none;opacity:0}
-@keyframes halo{0%{transform:scale(.9);opacity:.9}100%{transform:scale(1.6);opacity:0}}
-.listen .disc .core{position:absolute;inset:4px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#ffe2a6,var(--sun) 55%,#c9832a);box-shadow:0 0 22px rgba(242,176,74,.55)}
-.listen .disc svg.ring{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg)}
-.listen .disc svg.ring circle{fill:none;stroke-width:2.5}
-.listen .disc .ico{position:relative;width:16px;height:16px;fill:#1a1206}
-.listen .lt{display:flex;flex-direction:column;gap:3px;line-height:1.15}
-.listen .lt b{font:600 15px/1.2 "Noto Sans Devanagari",var(--f-body)}
-.listen .lt small{font:400 11.5px/1 var(--f-mono);color:var(--muted);font-variant-numeric:tabular-nums}
-.narr{position:fixed;z-index:35;left:0;right:0;margin-inline:auto;bottom:calc(16px + env(safe-area-inset-bottom,0px));width:min(820px,calc(100% - 24px));padding:14px 16px 12px;border:1px solid rgba(242,176,74,.35);border-radius:18px;background:linear-gradient(180deg,rgba(14,19,34,.92),rgba(6,9,18,.94));backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:0 30px 90px -30px rgba(242,176,74,.4),0 0 0 1px rgba(255,255,255,.02) inset;animation:dockIn .5s cubic-bezier(.2,.8,.2,1) both}
-@keyframes dockIn{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:none}}
-.narr:focus-visible{outline:2px solid var(--sun);outline-offset:3px}
-.narr-main{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:14px;align-items:center}
-.np{position:relative;width:52px;height:52px;border-radius:50%;border:0;padding:0;cursor:pointer;background:none;display:grid;place-items:center}
-.np .core{position:absolute;inset:5px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#ffe2a6,var(--sun) 55%,#c9832a);box-shadow:0 0 26px rgba(242,176,74,.5);transition:transform .2s}
-.np:hover .core{transform:scale(1.06)}
-.np svg.ring{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg)}
-.np svg.ring circle{fill:none;stroke-width:3}
-.np .ico{position:relative;width:18px;height:18px;fill:#1a1206}
-.narr-cap{min-width:0}
-.narr-line{margin:0;font:500 clamp(17px,2.3vw,25px)/1.45 var(--f-body);min-height:1.45em;text-wrap:balance}
-.narr-line[lang="hi"]{font-family:"Noto Sans Devanagari","Mangal","Kohinoor Devanagari",var(--f-body)}
-.narr-line .w{color:rgba(230,233,242,.32);transition:color .25s,text-shadow .25s}
-.narr-line .w.on{color:var(--fg)}
-.narr-line .w.now{color:#ffd68a;text-shadow:0 0 18px rgba(242,176,74,.55)}
-.narr-sub{margin:4px 0 0;font-size:13px;color:var(--muted);min-height:1.2em}
-.narr-side{display:flex;flex-direction:column;align-items:flex-end;gap:8px}
-.narr-side .row1{display:flex;gap:6px}
-.narr-side .seg button{padding:6px 11px;font-size:12px}
-.ib2{width:32px;height:30px;display:grid;place-items:center;border:1px solid var(--line2);border-radius:8px;background:rgba(15,22,38,.8);color:var(--fg);cursor:pointer}
-.ib2:hover{border-color:var(--sun)}
-.ib2 svg{width:14px;height:14px;fill:currentColor}
-.narr-viz{display:block;width:100%;height:34px;margin:10px 0 6px}
-.narr-seek{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center;font:400 11px/1 var(--f-mono);color:var(--muted);font-variant-numeric:tabular-nums}
-.seek{position:relative;height:18px;cursor:pointer;touch-action:none}
-.seek .track{position:absolute;left:0;right:0;top:7px;height:4px;border-radius:2px;background:rgba(150,168,210,.16)}
-.seek .fill{position:absolute;left:0;top:7px;height:4px;border-radius:2px;background:linear-gradient(90deg,#c9832a,var(--sun),#ffd68a);width:0}
-.seek .tick{position:absolute;top:5px;width:2px;height:8px;border-radius:1px;background:rgba(230,233,242,.28)}
-.seek .knob{position:absolute;top:3px;width:12px;height:12px;margin-left:-6px;border-radius:50%;background:#ffe2a6;box-shadow:0 0 12px rgba(242,176,74,.8);left:0;transition:transform .15s}
-.seek:hover .knob{transform:scale(1.25)}
-.seek .hov{position:absolute;bottom:20px;transform:translateX(-50%);padding:3px 6px;border-radius:5px;background:#0e1424;border:1px solid var(--line2);color:var(--fg);white-space:nowrap;pointer-events:none;opacity:0;transition:opacity .15s}
-.seek:hover .hov{opacity:1}
-.narr-keys{margin:6px 0 0;font:400 10.5px/1.4 var(--f-mono);color:rgba(138,148,174,.7)}
-@media (max-width:620px){.narr-main{grid-template-columns:auto minmax(0,1fr)}.narr-side{grid-column:1/3;grid-row:1;flex-direction:row;justify-content:space-between;align-items:center}.narr-keys{display:none}.np{width:46px;height:46px}}
-@media (prefers-reduced-motion:reduce){.listen .disc::before,.listen .disc::after{animation:none}.narr{animation:none}}
 /* scroll reveal (only applied by script to content below the first screen) */
 .reveal{transition:opacity .9s cubic-bezier(.2,.8,.2,1),transform .9s cubic-bezier(.2,.8,.2,1);transition-delay:calc(var(--d,0)*90ms)}
 .reveal.pending{opacity:0;transform:translateY(34px) scale(.985)}
@@ -198,24 +147,7 @@ html,body{background:#04060c}
 <div class="veil" aria-hidden="true"></div>
 <div id="labels" aria-hidden="true"></div>
 <div id="tip" role="status" aria-live="polite"></div>
-<section class="narr" id="narr" hidden tabindex="-1" aria-label="Project narration player">
-  <div class="narr-main">
-    <button class="np" id="narrPlay" type="button" aria-label="Pause"><svg class="ring" viewBox="0 0 52 52" aria-hidden="true"><circle cx="26" cy="26" r="24" stroke="rgba(242,176,74,.18)"/><circle class="arc" cx="26" cy="26" r="24" stroke="#ffd68a" stroke-linecap="round" stroke-dasharray="150.8" stroke-dashoffset="150.8"/></svg><span class="core"></span><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path id="npIco" d="M4 2h3v12H4zM9 2h3v12H9z"/></svg></button>
-    <div class="narr-cap"><p class="narr-line" id="narrLine" lang="hi" aria-live="polite"></p><p class="narr-sub" id="narrSub"></p></div>
-    <div class="narr-side">
-      <div class="seg" id="langSeg" role="group" aria-label="Narration language"><button data-l="hi" aria-pressed="true">हिन्दी</button><button data-l="en" aria-pressed="false">English</button></div>
-      <div class="row1">
-        <button class="ib2" id="narrPrev" type="button" aria-label="Previous sentence"><svg viewBox="0 0 16 16"><path d="M3 2h2v12H3zM14 2v12L6 8z"/></svg></button>
-        <button class="ib2" id="narrNext" type="button" aria-label="Next sentence"><svg viewBox="0 0 16 16"><path d="M11 2h2v12h-2zM2 2v12l8-6z"/></svg></button>
-        <button class="ib2" id="narrClose" type="button" aria-label="Close player"><svg viewBox="0 0 16 16"><path d="M3.5 2.1 8 6.6l4.5-4.5 1.4 1.4L9.4 8l4.5 4.5-1.4 1.4L8 9.4l-4.5 4.5-1.4-1.4L6.6 8 2.1 3.5z"/></svg></button>
-      </div>
-    </div>
-  </div>
-  <canvas class="narr-viz" id="narrViz" aria-hidden="true"></canvas>
-  <div class="narr-seek"><span id="narrCur">0:00</span><div class="seek" id="seek" role="slider" tabindex="0" aria-label="Seek" aria-valuemin="0" aria-valuemax="58" aria-valuenow="0"><div class="track"></div><div class="fill" id="seekFill"></div><div id="seekTicks"></div><div class="knob" id="seekKnob"></div><div class="hov" id="seekHov">0:00</div></div><span id="narrDur">0:58</span></div>
-  <p class="narr-keys">Space play/pause · ← → previous/next sentence · Esc close</p>
-</section>
-<audio id="narrAudio" preload="metadata"></audio>
+
 
 <div class="page">
 <nav class="nav"><div class="nav-in">
@@ -237,7 +169,6 @@ html,body{background:#04060c}
       <div class="cta">
         <a class="btn primary big" href="orrery.html">Open the 3D orrery</a>
         <a class="btn big" href="#tools">Explore the tools</a>
-        <button class="listen" id="listenBtn" type="button" aria-pressed="false" aria-label="हिन्दी में सुनिए, listen to a 58 second introduction"><span class="disc"><svg class="ring" viewBox="0 0 44 44" aria-hidden="true"><circle class="arc" cx="22" cy="22" r="20.5" stroke="#ffd68a" stroke-linecap="round" stroke-dasharray="128.8" stroke-dashoffset="128.8"/></svg><span class="core"></span><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path id="lbIco" d="M4.5 2.5v11l9-5.5z"/></svg></span><span class="lt"><b id="listenTxt">हिन्दी में सुनिए</b><small id="listenSub">Listen · 58 sec</small></span></button>
       </div>
     </div>
     <div class="scrollcue" aria-hidden="true"><span></span>SCROLL TO FLY</div>
@@ -356,6 +287,7 @@ html,body{background:#04060c}
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="lab.js"></script>
+<script src="narr.js"></script>
 <script src="space.js"></script>
 <script>
 (function(){
@@ -384,75 +316,9 @@ function countUp(el,to,dec,dur,suffix){ if(reduced){ el.textContent=to.toLocaleS
 
 
 /* ---------- narration ---------- */
-const NARR={hi:{src:"intro-hi.mp3",lang:"hi",caps:[[1.6, 2.65, "ऊपर देखिए।", "Look up."], [3.65, 8.6, "आप जो भी ग्रह देख रहे हैं, वो आज ठीक उसी जगह है, जहाँ वो असल में है।", "Every planet you see is exactly where it really is today."], [9.0, 10.33, "ये कोई ड्रॉइंग नहीं है।", "This is not a drawing."], [10.63, 11.88, "ये असली गणित है।", "This is real maths."], [12.88, 14.65, "ये है, सोलर सिस्टम लैब।", "This is Solar System Lab."], [15.45, 20.04, "आठों ग्रह, केप्लर के नियमों से, आपके ब्राउज़र में, हर पल लाइव चलते हैं।", "All eight planets run live in your browser, every moment, from Kepler's laws."], [20.74, 22.53, "और ये तो सिर्फ़ शुरुआत है।", "And this is only the beginning."], [23.38, 26.14, "मंगल ग्रह की सतह पर, नए गड्ढे खोजिए।", "Find new craters on the surface of Mars."], [26.59, 31.85, "धूल भरी आँधियों और बर्फ़ीली रातों में, रोवर को परखिए, धरती छोड़ने से पहले ही।", "Test a rover through dust storms and icy nights, before it even leaves Earth."], [32.3, 36.92, "वो जगह ढूँढिए, जहाँ उतरना सुरक्षित भी हो, और नई खोज भी हो सके।", "Find the place where landing is safe, and new discoveries are possible."], [37.42, 42.55, "और जब डेटा आपको चौंकाए, तो पता कीजिए, कि ये सच में नई खोज है, या सिर्फ़ एक गड़बड़।", "And when the data surprises you, find out whether it's a real discovery, or just a glitch."], [43.4, 44.9, "कुछ इंस्टॉल नहीं करना।", "Nothing to install."], [45.15, 46.2, "कोई अकाउंट नहीं।", "No account."], [46.5, 49.46, "बस पूरा सौरमंडल, और उसे समझने के टूल्स।", "Just the whole solar system, and the tools to understand it."], [50.46, 51.72, "सोलर सिस्टम लैब।", "Solar System Lab."], [52.27, 54.67, "पूरा सौरमंडल, गणित की ताक़त से।", "The whole solar system, powered by maths."]]},en:{src:"intro-en.mp3",lang:"en",caps:[[1.6, 2.09, "Look up.", ""], [3.09, 5.96, "Every planet you see is exactly where it is today.", ""], [6.31, 7.03, "Not drawn.", ""], [7.33, 7.99, "Computed.", ""], [8.99, 10.45, "This is Solar System Lab.", ""], [11.25, 16.63, "Eight worlds, solved from Kepler's laws, live in your browser, on every single frame.", ""], [17.28, 18.91, "And this is only the beginning.", ""], [19.76, 22.33, "Hunt for new craters on the surface of Mars.", ""], [22.78, 26.85, "Put a rover through dust storms and frozen nights, before it ever leaves Earth.", ""], [27.3, 30.45, "Find the landing site where safety and discovery meet.", ""], [30.95, 35.8, "And when the data surprises you, find out if it is a real discovery, or just a glitch.", ""], [36.65, 38.1, "No installs.", ""], [38.35, 39.14, "No accounts.", ""], [39.44, 42.17, "Just the solar system, and the tools to question it.", ""], [43.17, 44.41, "Solar System Lab.", ""], [44.96, 46.66, "The solar system, computed.", ""]]}};
-(function(){
-  const au=$('narrAudio'), btn=$('listenBtn'), box=$('narr'), line=$('narrLine'), sub=$('narrSub');
-  const PLAY='M4.5 2.5v11l9-5.5z', PAUSE='M4 2h3v12H4zM9 2h3v12H9z';
-  const arcs=[btn.querySelector('.arc'),box.querySelector('.np .arc')];
-  let lang='hi', idx=-1, words=[], prevSpeed=null, actx=null, an=null, freq=null, silentFrames=0, raf=null;
-  const fmt=t=>{ t=Math.max(0,t||0); return Math.floor(t/60)+':'+String(Math.floor(t%60)).padStart(2,'0'); };
-  const caps=()=>NARR[lang].caps, dur=()=>au.duration||caps()[caps().length-1][1]+3;
-  function buildTicks(){ const T=$('seekTicks'); T.innerHTML=caps().map(c=>`<i class="tick" style="left:${(c[0]/dur()*100).toFixed(2)}%"></i>`).join(''); $('narrDur').textContent=fmt(dur()); $('seek').setAttribute('aria-valuemax',Math.round(dur())); }
-  function load(l){ const was=!au.paused&&!au.ended; au.pause(); lang=l; au.src=NARR[l].src; line.lang=NARR[l].lang; idx=-1; line.innerHTML=''; sub.textContent='';
-    [...$('langSeg').children].forEach(b=>b.setAttribute('aria-pressed',b.dataset.l===l));
-    $('listenTxt').textContent=l==='hi'?'हिन्दी में सुनिए':'Listen in English'; $('listenSub').textContent=l==='hi'?'Listen · 58 sec':'सुनिए · 50 sec';
-    buildTicks(); render(); if(was) play(); }
-  au.addEventListener('loadedmetadata',buildTicks);
-  function cinematic(on){ window.__cine=on; if(typeof sim==='undefined') return; if(on){ if(prevSpeed===null) prevSpeed=sim.speed; sim.speed=30; } else if(prevSpeed!==null){ sim.speed=prevSpeed; prevSpeed=null; } }
-  function setIcons(playing){ $('lbIco').setAttribute('d',playing?PAUSE:PLAY); $('npIco').setAttribute('d',playing?PAUSE:PLAY); $('narrPlay').setAttribute('aria-label',playing?'Pause':'Play'); btn.setAttribute('aria-pressed',playing); }
-  function initAudioGraph(){ if(actx) return; try{ actx=new (window.AudioContext||window.webkitAudioContext)(); const src=actx.createMediaElementSource(au); an=actx.createAnalyser(); an.fftSize=256; an.smoothingTimeConstant=.78; src.connect(an); an.connect(actx.destination); freq=new Uint8Array(an.frequencyBinCount); }catch(e){ actx=null; an=null; } }
-  function play(){ box.hidden=false; initAudioGraph(); if(actx&&actx.state==='suspended') actx.resume();
-    if(au.ended) au.currentTime=0;
-    const p=au.play(); if(p&&p.catch) p.catch(()=>{ sub.textContent='The browser blocked audio. Press play again.'; setIcons(false); });
-    setIcons(true); cinematic(true); loop(); }
-  function pause(){ au.pause(); setIcons(false); cinematic(false); }
-  function close(){ pause(); box.hidden=true; }
-  btn.onclick=()=>{ if(au.paused||au.ended) play(); else pause(); };
-  $('narrPlay').onclick=btn.onclick;
-  $('narrClose').onclick=close;
-  $('langSeg').querySelectorAll('button').forEach(b=>b.onclick=()=>load(b.dataset.l));
-  const jump=d=>{ const c=caps(), t=au.currentTime; let k=-1; for(let i=0;i<c.length;i++) if(t>=c[i][0]-.05) k=i; let n=d<0?(t-(c[k]?c[k][0]:0)>1.2?k:k-1):k+1; n=Math.max(0,Math.min(c.length-1,n)); au.currentTime=c[n][0]; if(au.paused) play(); else render(); };
-  $('narrPrev').onclick=()=>jump(-1); $('narrNext').onclick=()=>jump(1);
-  box.addEventListener('keydown',e=>{ if(e.target.closest('.seg')&&e.key!=='Escape') return;
-    if(e.key===' '||e.key==='k'){ e.preventDefault(); btn.onclick(); } else if(e.key==='ArrowLeft'){ e.preventDefault(); jump(-1); } else if(e.key==='ArrowRight'){ e.preventDefault(); jump(1); } else if(e.key==='Escape'){ close(); btn.focus(); } });
-  // seek bar
-  const seek=$('seek'), at=e=>{ const r=seek.getBoundingClientRect(); return Math.max(0,Math.min(1,(e.clientX-r.left)/r.width)); };
-  let drag=false;
-  seek.addEventListener('pointerdown',e=>{ drag=true; seek.setPointerCapture(e.pointerId); au.currentTime=at(e)*dur(); render(); });
-  seek.addEventListener('pointermove',e=>{ const f=at(e); $('seekHov').style.left=(f*100)+'%'; $('seekHov').textContent=fmt(f*dur()); if(drag){ au.currentTime=f*dur(); render(); } });
-  seek.addEventListener('pointerup',()=>{ drag=false; });
-  seek.addEventListener('keydown',e=>{ if(e.key==='ArrowLeft'||e.key==='ArrowRight'){ e.preventDefault(); e.stopPropagation(); au.currentTime=Math.max(0,Math.min(dur(),au.currentTime+(e.key==='ArrowLeft'?-5:5))); render(); } });
-  // captions with word-by-word highlight
-  function setLine(k){ idx=k; const c=caps()[k]; if(!c){ line.innerHTML=''; sub.textContent=''; words=[]; return; }
-    const parts=c[2].split(/(\s+)/), lens=parts.map(p=>/^\s+$/.test(p)?0:Math.max(1,p.replace(/[,।.]/g,'').length)), tot=lens.reduce((a,b)=>a+b,0)||1;
-    let acc=0; words=[]; line.innerHTML='';
-    parts.forEach((p,i)=>{ if(lens[i]===0){ line.appendChild(document.createTextNode(p)); return; } const sp=document.createElement('span'); sp.className='w'; sp.textContent=p; line.appendChild(sp);
-      words.push({el:sp,t:c[0]+(c[1]-c[0])*acc/tot}); acc+=lens[i]; });
-    sub.textContent=c[3]||''; }
-  function render(){ const t=au.currentTime, c=caps(), D=dur();
-    let k=-1; for(let i=0;i<c.length;i++) if(t>=c[i][0]-.08) k=i;
-    if(k!==idx) setLine(k);
-    words.forEach((w,i)=>{ const on=t>=w.t-.02, nx=words[i+1]; w.el.classList.toggle('on',on); w.el.classList.toggle('now',on&&(!nx||t<nx.t)&&k>=0&&t<=c[k][1]+.15); });
-    const f=Math.min(1,t/D); $('seekFill').style.width=(f*100)+'%'; $('seekKnob').style.left=(f*100)+'%'; $('narrCur').textContent=fmt(t); seek.setAttribute('aria-valuenow',Math.round(t));
-    arcs[0].style.strokeDashoffset=(128.8*(1-f)).toFixed(1); arcs[1].style.strokeDashoffset=(150.8*(1-f)).toFixed(1);
-    if(!au.paused) $('listenSub').textContent=`${fmt(t)} / ${fmt(D)}`; }
-  // visualizer
-  const cv=$('narrViz'), g=cv.getContext('2d');
-  function drawViz(){ const d=Math.min(2,devicePixelRatio||1), W=Math.round(cv.clientWidth*d), H=Math.round(cv.clientHeight*d); if(cv.width!==W||cv.height!==H){ cv.width=W; cv.height=H; }
-    g.clearRect(0,0,W,H); const N=Math.max(24,Math.floor(W/(7*d))), bw=W/N;
-    let real=false; if(an&&!au.paused){ an.getByteFrequencyData(freq); let sum=0; for(const v of freq) sum+=v; if(sum>0){ real=true; silentFrames=0; } else silentFrames++; }
-    const t=au.currentTime, c=caps(), speaking=c.some(x=>t>=x[0]&&t<=x[1])&&!au.paused, now=performance.now()/1000;
-    const grd=g.createLinearGradient(0,0,W,0); grd.addColorStop(0,'rgba(201,131,42,.9)'); grd.addColorStop(.5,'rgba(255,214,138,1)'); grd.addColorStop(1,'rgba(201,131,42,.9)'); g.fillStyle=grd;
-    for(let i=0;i<N;i++){ const m=Math.abs(i-(N-1)/2)/((N-1)/2); let v;
-      if(real){ const bin=Math.floor(2+m*freq.length*.5); v=Math.min(1,freq[bin]/255*1.15); }
-      else v=au.paused?.04:(speaking?(.25+.55*Math.abs(Math.sin(now*9+i*.7)*Math.sin(now*3.3+i*.31))):.06)*(1-m*.6);
-      const h=Math.max(2*d,v*H*.95), x=i*bw+bw*.2; g.globalAlpha=.35+.65*v; g.fillRect(x,(H-h)/2,bw*.6,h); }
-    g.globalAlpha=1; }
-  function loop(){ cancelAnimationFrame(raf); const step=()=>{ render(); drawViz(); if(!au.paused&&!box.hidden) raf=requestAnimationFrame(step); }; raf=requestAnimationFrame(step); }
-  au.addEventListener('pause',()=>{ render(); drawViz(); });
-  au.addEventListener('ended',()=>{ setIcons(false); cinematic(false); $('listenSub').textContent='Play again · '+fmt(dur()); $('npIco').setAttribute('d','M8 2.5a5.5 5.5 0 1 1-5.2 3.7l1.5.5A4 4 0 1 0 8 4v2L4.8 3.3 8 .5z'); $('narrPlay').setAttribute('aria-label','Replay'); });
-  load('hi');
-})();
+/* narration hook: speed up time and orbit the camera while the intro plays */
+(function(){ let prev=null; window.__narrCinematic=on=>{ window.__cine=on; if(typeof sim==='undefined') return;
+  if(on){ if(prev===null) prev=sim.speed; sim.speed=30; } else if(prev!==null){ sim.speed=prev; prev=null; } }; })();
 
 /* ---------- today's numbers ---------- */
 function nextStation(jd0){ let best=null;

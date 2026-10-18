@@ -157,3 +157,60 @@ svg text{font-family:var(--f-mono)}
 @keyframes titleShine{from{background-position:100% 0}to{background-position:0 0}}
 @keyframes shine{from{background-position:130% 0}to{background-position:-40% 0}}
 @keyframes pillIn{from{opacity:0;transform:scale(.85)}to{opacity:1;transform:none}}
+
+/* ===== narration: nav button + player dock ===== */
+.nav{display:flex;align-items:center}
+.nav .nav-in{flex:1 1 auto;min-width:0}
+.navlisten{flex:none;display:inline-flex;align-items:center;gap:9px;margin-left:8px;margin-right:max(14px,env(safe-area-inset-right,0px));padding:4px 14px 4px 4px;border-radius:999px;border:1px solid rgba(242,176,74,.45);background:rgba(15,22,38,.78);color:var(--fg);cursor:pointer;font:inherit;text-align:left;transition:border-color .25s,box-shadow .3s}
+.navlisten:hover{border-color:var(--sun);box-shadow:0 6px 26px -10px rgba(242,176,74,.65)}
+.navlisten .disc{position:relative;width:32px;height:32px;flex:none;display:grid;place-items:center}
+.navlisten .disc::before,.navlisten .disc::after{content:"";position:absolute;inset:0;border-radius:50%;border:1.5px solid rgba(242,176,74,.55);animation:halo 2.4s cubic-bezier(.2,.6,.3,1) infinite}
+.navlisten .disc::after{animation-delay:1.2s}
+.navlisten[aria-pressed="true"] .disc::before,.navlisten[aria-pressed="true"] .disc::after{animation:none;opacity:0}
+@keyframes halo{0%{transform:scale(.9);opacity:.9}100%{transform:scale(1.55);opacity:0}}
+.navlisten .disc .core{position:absolute;inset:3px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#ffe2a6,var(--sun) 55%,#c9832a);box-shadow:0 0 16px rgba(242,176,74,.5)}
+.navlisten .disc svg.ring{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg)}
+.navlisten .disc svg.ring circle{fill:none;stroke-width:2.2}
+.navlisten .disc .ico{position:relative;width:12px;height:12px;fill:#1a1206}
+.navlisten .lt{display:flex;flex-direction:column;gap:2px;line-height:1.1}
+.navlisten .lt b{font:600 13px/1.15 "Noto Sans Devanagari",var(--f-body);white-space:nowrap}
+.navlisten .lt small{font:400 10.5px/1 var(--f-mono);color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+@media (max-width:720px){.navlisten .lt small{display:none}}
+@media (max-width:440px){.navlisten{padding:4px}.navlisten .lt{display:none}}
+.narr{position:fixed;z-index:35;left:0;right:0;margin-inline:auto;bottom:calc(16px + env(safe-area-inset-bottom,0px));width:min(820px,calc(100% - 24px));padding:14px 16px 12px;border:1px solid rgba(242,176,74,.35);border-radius:18px;background:linear-gradient(180deg,rgba(14,19,34,.92),rgba(6,9,18,.94));backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:0 30px 90px -30px rgba(242,176,74,.4),0 0 0 1px rgba(255,255,255,.02) inset;animation:dockIn .5s cubic-bezier(.2,.8,.2,1) both}
+@keyframes dockIn{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:none}}
+.narr:focus-visible{outline:2px solid var(--sun);outline-offset:3px}
+.narr-main{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:14px;align-items:center}
+.np{position:relative;width:52px;height:52px;border-radius:50%;border:0;padding:0;cursor:pointer;background:none;display:grid;place-items:center}
+.np .core{position:absolute;inset:5px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#ffe2a6,var(--sun) 55%,#c9832a);box-shadow:0 0 26px rgba(242,176,74,.5);transition:transform .2s}
+.np:hover .core{transform:scale(1.06)}
+.np svg.ring{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg)}
+.np svg.ring circle{fill:none;stroke-width:3}
+.np .ico{position:relative;width:18px;height:18px;fill:#1a1206}
+.narr-cap{min-width:0}
+.narr-line{margin:0;font:500 clamp(17px,2.3vw,25px)/1.45 var(--f-body);min-height:1.45em;text-wrap:balance}
+.narr-line[lang="hi"]{font-family:"Noto Sans Devanagari","Mangal","Kohinoor Devanagari",var(--f-body)}
+.narr-line .w{color:rgba(230,233,242,.32);transition:color .25s,text-shadow .25s}
+.narr-line .w.on{color:var(--fg)}
+.narr-line .w.now{color:#ffd68a;text-shadow:0 0 18px rgba(242,176,74,.55)}
+.narr-sub{margin:4px 0 0;font-size:13px;color:var(--muted);min-height:1.2em}
+.narr-side{display:flex;flex-direction:column;align-items:flex-end;gap:8px}
+.narr-side .row1{display:flex;gap:6px}
+.narr-side .seg button{padding:6px 11px;font-size:12px}
+.ib2{width:32px;height:30px;display:grid;place-items:center;border:1px solid var(--line2);border-radius:8px;background:rgba(15,22,38,.8);color:var(--fg);cursor:pointer}
+.ib2:hover{border-color:var(--sun)}
+.ib2 svg{width:14px;height:14px;fill:currentColor}
+.narr-viz{display:block;width:100%;height:34px;margin:10px 0 6px}
+.narr-seek{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center;font:400 11px/1 var(--f-mono);color:var(--muted);font-variant-numeric:tabular-nums}
+.seek{position:relative;height:18px;cursor:pointer;touch-action:none}
+.seek .track{position:absolute;left:0;right:0;top:7px;height:4px;border-radius:2px;background:rgba(150,168,210,.16)}
+.seek .fill{position:absolute;left:0;top:7px;height:4px;border-radius:2px;background:linear-gradient(90deg,#c9832a,var(--sun),#ffd68a);width:0}
+.seek .tick{position:absolute;top:5px;width:2px;height:8px;border-radius:1px;background:rgba(230,233,242,.28)}
+.seek .knob{position:absolute;top:3px;width:12px;height:12px;margin-left:-6px;border-radius:50%;background:#ffe2a6;box-shadow:0 0 12px rgba(242,176,74,.8);left:0;transition:transform .15s}
+.seek:hover .knob{transform:scale(1.25)}
+.seek .hov{position:absolute;bottom:20px;transform:translateX(-50%);padding:3px 6px;border-radius:5px;background:#0e1424;border:1px solid var(--line2);color:var(--fg);white-space:nowrap;pointer-events:none;opacity:0;transition:opacity .15s}
+.seek:hover .hov{opacity:1}
+.narr-keys{margin:6px 0 0;font:400 10.5px/1.4 var(--f-mono);color:rgba(138,148,174,.7)}
+@media (max-width:620px){.narr-main{grid-template-columns:auto minmax(0,1fr)}.narr-side{grid-column:1/3;grid-row:1;flex-direction:row;justify-content:space-between;align-items:center}.narr-keys{display:none}.np{width:46px;height:46px}}
+@media (prefers-reduced-motion:reduce){.navlisten .disc::before,.navlisten .disc::after{animation:none}.narr{animation:none}}
+
