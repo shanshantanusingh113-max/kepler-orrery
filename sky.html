@@ -1,0 +1,375 @@
+<!doctype html>
+<html lang="hi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="claude:viewport-fit-sides" content="cover">
+<title>Tonight's Sky</title>
+<!-- share -->
+<meta name="description" content="See which planets you can spot tonight from your city: rise and set times, which direction to look, how high, and the Moon's phase. In Hindi and English.">
+<meta name="theme-color" content="#04060c">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="icon" href="favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Solar System Lab">
+<meta property="og:title" content="आज रात का आसमान · Tonight's Sky · Solar System Lab">
+<meta property="og:description" content="See which planets you can spot tonight from your city: rise and set times, which direction to look, how high, and the Moon's phase. In Hindi and English.">
+<meta property="og:url" content="https://shanshantanusingh113-max.github.io/kepler-orrery/sky.html">
+<meta property="og:image" content="https://shanshantanusingh113-max.github.io/kepler-orrery/og-image.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:locale" content="hi_IN">
+<meta property="og:locale:alternate" content="en_IN">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="आज रात का आसमान · Tonight's Sky · Solar System Lab">
+<meta name="twitter:description" content="See which planets you can spot tonight from your city: rise and set times, which direction to look, how high, and the Moon's phase. In Hindi and English.">
+<meta name="twitter:image" content="https://shanshantanusingh113-max.github.io/kepler-orrery/og-image.jpg">
+<!-- /share -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Michroma&family=Noto+Sans+Devanagari:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="lab.css">
+<style>
+/* Tonight's sky: night-blue tool page. Left: place and date. Right: summary, live sky panorama, planet cards, night timeline. */
+.hi{font-family:"Noto Sans Devanagari","IBM Plex Sans",sans-serif}
+.phead h1 .en{display:block;font:400 clamp(13px,1.4vw,15px)/1.4 var(--f-mono);letter-spacing:.14em;color:var(--muted);margin-top:8px;-webkit-text-fill-color:var(--muted)}
+.phead h1.hi{font:600 clamp(28px,4.4vw,46px)/1.15 "Noto Sans Devanagari",var(--f-body);letter-spacing:0;background:none!important;color:var(--fg)!important;-webkit-text-fill-color:var(--fg)!important;animation:rise .8s both!important}
+.quick{display:flex;gap:6px;margin-top:8px}
+.quick .btn{padding:6px 10px;font-size:12px}
+.times{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:9px}
+.times li{display:grid;grid-template-columns:20px minmax(0,1fr) auto;gap:10px;align-items:center;font-size:13px}
+.times li svg{width:18px;height:18px}
+.times li b{font:500 13px/1 var(--f-mono);font-variant-numeric:tabular-nums}
+.times li span small{display:block;color:var(--muted);font-size:11px}
+.glance{display:flex;flex-direction:column;gap:12px}
+.glance .row2{display:flex;flex-wrap:wrap;gap:8px 18px;align-items:baseline}
+.glance .lbl{font:500 11px/1 var(--f-mono);letter-spacing:.12em;color:var(--muted);text-transform:uppercase;min-width:120px}
+.chip{display:inline-flex;align-items:center;gap:7px;padding:6px 10px;border-radius:999px;border:1px solid var(--line2);font-size:13px;background:rgba(15,22,38,.6)}
+.chip i{width:9px;height:9px;border-radius:50%}
+.chip small{color:var(--muted);font-size:11px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.skybox{position:relative;border-radius:10px;overflow:hidden;border:1px solid var(--line)}
+.skybox canvas{display:block;width:100%;height:auto}
+.skyctl{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-top:12px}
+.skyctl input[type=range]{flex:1;min-width:180px}
+.skyctl .clock{font:500 18px/1 var(--f-mono);font-variant-numeric:tabular-nums;min-width:92px}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
+.pc{border:1px solid var(--line);border-radius:12px;padding:14px;background:rgba(10,15,27,.7);display:flex;flex-direction:column;gap:10px;min-width:0}
+.pc.vis{border-color:rgba(var(--sun-rgb),.35)}
+.pc header{display:flex;align-items:center;gap:10px}
+.pc header .dot{width:26px;height:26px;border-radius:50%;flex:none;box-shadow:inset -6px -4px 10px rgba(0,0,0,.55)}
+.pc header h3{margin:0;font:600 17px/1.1 "Noto Sans Devanagari",var(--f-body)}
+.pc header h3 small{display:block;font:400 11.5px/1.3 var(--f-body);color:var(--muted)}
+.pc header .st{margin-left:auto}
+.pc dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:5px 10px;font-size:12.5px}
+.pc dt{color:var(--muted)} .pc dd{margin:0;text-align:right;font-family:var(--f-mono);font-size:12px;font-variant-numeric:tabular-nums}
+.pc dd .hi{font-family:"Noto Sans Devanagari",var(--f-body);font-size:12.5px}
+.pc .spark{display:block;width:100%;height:44px}
+.pc .tip{margin:0;font-size:12.5px;color:#c5cce0;line-height:1.5}
+.pc .tip .hi{display:block;color:var(--fg);font-size:13.5px;margin-bottom:2px}
+.st{font:500 11px/1 var(--f-body);padding:5px 8px;border-radius:999px;border:1px solid var(--line2);white-space:nowrap}
+.st.all{color:#9fe8c4;border-color:rgba(111,209,162,.5)} .st.eve{color:#ffd68a;border-color:rgba(242,176,74,.5)} .st.morn{color:#9fd0ff;border-color:rgba(134,182,255,.5)} .st.part{color:#e6e9f2}
+.st.no{color:var(--muted)} .st.glare{color:#ffb08a;border-color:rgba(255,138,110,.45)}
+.moonart{display:block;width:64px;height:64px;flex:none}
+.tl svg{display:block;width:100%;height:auto}
+.legend2{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12px;color:var(--muted);margin-top:8px}
+.legend2 i{display:inline-block;width:18px;height:8px;border-radius:3px;margin-right:6px;vertical-align:0}
+.locmsg{font-size:12px;color:var(--muted);margin-top:6px}
+</style>
+</head>
+<body>
+<nav class="nav"><div class="nav-in">
+  <a class="mark" href="index.html">SOLAR SYSTEM LAB</a>
+  <a class="tab" href="index.html">Home</a>
+  <a class="tab" href="sky.html" aria-current="page">Tonight's Sky</a>
+  <a class="tab" href="orrery.html">Orrery</a>
+  <a class="tab" href="marswalk.html">Marswalk</a>
+  <a class="tab" href="anomaly.html">Anomaly Hunter</a>
+  <a class="tab" href="mission.html">Mission Survival</a>
+  <a class="tab" href="landing.html">Landing Sites</a>
+  <a class="tab" href="discovery.html">Discovery Engine</a>
+</div></nav>
+
+<main class="wrap">
+  <div class="phead">
+    <div>
+      <div class="eyebrow">Tool 05 · Naked-eye sky planner</div>
+      <h1 class="hi">आज रात का आसमान<span class="en">TONIGHT'S SKY FROM YOUR CITY</span></h1>
+      <p>Which planets you can see tonight, when they rise and set, which way to look and how high, computed for your city in your browser. <span class="hi">अपना शहर चुनिए और जानिए आज रात कौन-सा ग्रह कहाँ दिखेगा।</span></p>
+    </div>
+  </div>
+
+  <div class="layout">
+    <aside class="stack">
+      <div class="card">
+        <h2>शहर · City</h2>
+        <div class="field"><select id="city" aria-label="City"></select></div>
+        <button class="btn" id="locBtn" type="button" style="width:100%">📍 मेरी जगह · Use my location</button>
+        <p class="locmsg" id="locMsg" hidden></p>
+        <div class="divider"></div>
+        <h2>तारीख · Date</h2>
+        <div class="field"><input type="date" id="date" aria-label="Date"></div>
+        <div class="quick"><button class="btn" id="dToday" type="button">आज · Today</button><button class="btn" id="dTom" type="button">कल · Tomorrow</button></div>
+      </div>
+      <div class="card">
+        <h2>रात का समय · The night</h2>
+        <ul class="times" id="times"></ul>
+      </div>
+      <div class="card">
+        <h2>देखने के सुझाव · Tips</h2>
+        <p class="hint hi" style="margin-top:0;color:#c5cce0">शहर की रोशनी से दूर, खुली जगह पर जाइए। आँखों को 10 मिनट अँधेरे की आदत डालने दीजिए। ग्रह तारों की तरह टिमटिमाते नहीं, स्थिर चमकते हैं।</p>
+        <p class="hint">Get away from street lights, give your eyes 10 minutes to adapt, and look for steady points: planets shine without twinkling.</p>
+      </div>
+    </aside>
+
+    <div class="stack">
+      <div class="card glance" id="glance"></div>
+      <div class="card">
+        <h2>आसमान का नक्शा · Sky view <b id="skyWhen"></b></h2>
+        <div class="skybox"><canvas id="sky" width="1200" height="420" aria-label="Panorama of the sky at the chosen time, with planets and the Moon"></canvas></div>
+        <div class="skyctl">
+          <button class="btn" id="playBtn" type="button" aria-pressed="false">▶ रात चलाइए · Play the night</button>
+          <input type="range" id="tSlider" aria-label="Time of night" min="0" max="100" step="1" value="0">
+          <span class="clock" id="tClock">—</span>
+        </div>
+        <p class="hint">Horizontal axis is compass direction with south in the middle; vertical is height above the horizon. The dashed line is the ecliptic, the path the planets follow. <span class="hi">बीच में दक्षिण दिशा है; ऊपर की ओर ऊँचाई।</span></p>
+      </div>
+      <div class="cards" id="cards"></div>
+      <div class="card tl">
+        <h2>पूरी रात · Through the night</h2>
+        <div id="timeline"></div>
+        <div class="legend2"><span><i style="background:rgba(150,168,210,.35)"></i>Above the horizon</span><span><i style="background:var(--sun)"></i>Good to see · देखने का सही समय</span><span><i style="background:#0b1a33"></i>Twilight · संध्या</span></div>
+      </div>
+    </div>
+  </div>
+  <p class="foot">Positions from JPL Keplerian elements and a simplified lunar theory: rise and set times are good to about 2 minutes for planets and a few minutes for the Moon, slightly later at a high horizon. Times assume a flat, clear horizon.</p>
+</main>
+
+<script src="lab.js"></script>
+<script src="narr.js"></script>
+<script src="sky-engine.js"></script>
+<script>
+(function(){
+"use strict";
+const {$,esc}=Lab, D2R=Math.PI/180;
+const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const IST='Asia/Kolkata';
+const CITIES=[
+ ['New Delhi','नई दिल्ली',28.6139,77.2090],['Ghaziabad','गाज़ियाबाद',28.6692,77.4538],['Noida','नोएडा',28.5355,77.3910],['Gurugram','गुरुग्राम',28.4595,77.0266],
+ ['Mumbai','मुंबई',19.0760,72.8777],['Kolkata','कोलकाता',22.5726,88.3639],['Chennai','चेन्नई',13.0827,80.2707],['Bengaluru','बेंगलुरु',12.9716,77.5946],
+ ['Hyderabad','हैदराबाद',17.3850,78.4867],['Pune','पुणे',18.5204,73.8567],['Ahmedabad','अहमदाबाद',23.0225,72.5714],['Jaipur','जयपुर',26.9124,75.7873],
+ ['Lucknow','लखनऊ',26.8467,80.9462],['Patna','पटना',25.5941,85.1376],['Bhopal','भोपाल',23.2599,77.4126],['Chandigarh','चंडीगढ़',30.7333,76.7794],
+ ['Varanasi','वाराणसी',25.3176,82.9739],['Bhubaneswar','भुवनेश्वर',20.2961,85.8245],['Guwahati','गुवाहाटी',26.1445,91.7362],['Kochi','कोच्चि',9.9312,76.2673],
+ ['Thiruvananthapuram','तिरुवनंतपुरम',8.5241,76.9366],['Srinagar','श्रीनगर',34.0837,74.7973],['Dehradun','देहरादून',30.3165,78.0322],['Raipur','रायपुर',21.2514,81.6296],
+ ['Ranchi','रांची',23.3441,85.3096],['Indore','इंदौर',22.7196,75.8577],['Nagpur','नागपुर',21.1458,79.0882],['Leh (dark skies)','लेह (अँधेरा आसमान)',34.1526,77.5771],
+ ['Sriharikota (ISRO)','श्रीहरिकोटा (इसरो)',13.7199,80.2304],['Hanle Observatory','हान्ले वेधशाला',32.7794,78.9642]
+].map(c=>({en:c[0],hi:c[1],lat:c[2],lon:c[3],tz:IST}));
+const HI={Mercury:'बुध',Venus:'शुक्र',Mars:'मंगल',Jupiter:'बृहस्पति',Saturn:'शनि',Uranus:'अरुण',Neptune:'वरुण',Moon:'चंद्रमा'};
+const COL={Mercury:'#b8ab9c',Venus:'#f1d9a6',Mars:'#e0784a',Jupiter:'#e3c29a',Saturn:'#e9d39f',Uranus:'#9fdde6',Neptune:'#6d93ec',Moon:'#e8e6df'};
+const STATUS={binoc:['बाइनोक्युलर से','With binoculars'],low:['धुंधलके में बहुत नीचे','Very low at dusk/dawn'],all:['रात भर','All night'],eve:['शाम को','Evening'],morn:['सुबह से पहले','Before dawn'],part:['रात में','Part of the night'],glare:['सूर्य की चमक में','In the Sun’s glare'],down:['रात में नहीं','Not up at night'],scope:['दूरबीन से','Telescope only']};
+
+let city=CITIES[0], night=null, info=null, sel=0, playing=false;
+try{ const s=JSON.parse(localStorage.getItem('sky-city')||'null'); if(s&&s.lat!==undefined) city=CITIES.find(c=>c.en===s.en)||s; }catch(e){}
+
+/* ---------- time helpers in the city's time zone ---------- */
+function tzOff(tz,ms){ const p=Object.fromEntries(new Intl.DateTimeFormat('en-US',{timeZone:tz,hourCycle:'h23',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit'}).formatToParts(new Date(ms)).map(x=>[x.type,x.value]));
+  return (Date.UTC(+p.year,+p.month-1,+p.day,+p.hour,+p.minute,+p.second)-ms)/60000; }
+function localNoon(dateStr,tz){ const [y,m,d]=dateStr.split('-').map(Number); let ms=Date.UTC(y,m-1,d,12); ms-=tzOff(tz,ms)*60000; return ms; }
+const fmtT=(ms,tz)=>ms==null?'—':new Intl.DateTimeFormat('en-IN',{timeZone:tz||city.tz,hour:'numeric',minute:'2-digit',hour12:true}).format(new Date(ms)).replace(' am',' AM').replace(' pm',' PM');
+function todayStr(tz,addDays){ const ms=Date.now()+(addDays||0)*864e5; const p=Object.fromEntries(new Intl.DateTimeFormat('en-CA',{timeZone:tz,year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date(ms)).map(x=>[x.type,x.value])); return `${p.year}-${p.month}-${p.day}`; }
+
+/* ---------- compute one night ---------- */
+function compute(){
+  const noon=localNoon($('date').value,city.tz);
+  night=Sky.night(city,noon,4);
+  const T=night.times, sunAlt=night.sun.map(s=>s.alt);
+  const first=(arr,rising)=>{ const e=arr.find(x=>x.rising===rising); return e?e.ms:null; };
+  const c0=Sky.crossings(T,sunAlt,-0.833), c6=Sky.crossings(T,sunAlt,-6), c12=Sky.crossings(T,sunAlt,-12), c18=Sky.crossings(T,sunAlt,-18);
+  const sunset=first(c0,false), sunrise=first(c0,true), dusk6=first(c6,false), dawn6=first(c6,true), dusk12=first(c12,false), dawn12=first(c12,true), dusk18=first(c18,false), dawn18=first(c18,true);
+  const mc=Sky.crossings(T,night.moon.map(m=>m.alt),-0.833);
+  info={sunset,sunrise,dusk6,dawn6,dusk12,dawn12,dusk18,dawn18,moonrise:first(mc,true),moonset:first(mc,false),bodies:[]};
+  const mid=(dusk6&&dawn6)?(dusk6+dawn6)/2:T[Math.floor(T.length/2)];
+  // index of a representative mid-evening moment for phase / magnitude
+  const kRef=Math.max(0,T.findIndex(t=>t>=(dusk12||mid)));
+  // Moon
+  { const mArr=night.moon, m=mArr[kRef], s=night.sun[kRef], psi=Sky.sep(m.v,s.v), lit=(1-Math.cos(psi*D2R))/2, dl=((Sky.lonOf(m.v)-Sky.lonOf(s.v))+360)%360;
+    const vis=T.map((t,k)=>mArr[k].alt>3&&sunAlt[k]<-4);
+    info.bodies.push(classify('Moon',mArr,vis,{lit,waxing:dl<180,psi,con:Sky.constellation(Sky.lonOf(m.v)),mag:-12.7+2.5*Math.log10(1/Math.max(lit,.02))*0.9},mid)); }
+  // planets
+  Lab.PLANETS.filter(p=>p.name!=='Earth').forEach(p=>{
+    const arr=night.planets[p.name], g=arr[kRef].g, mag=Sky.mag(p.name,g.r,g.R,g.dist), el=Sky.sep(g.v,night.sun[kRef].v);
+    const lim=mag<0?-5:mag<2?-8:-12;
+    const vis=T.map((t,k)=>arr[k].alt>7&&sunAlt[k]<lim&&mag<=6.2);
+    info.bodies.push(classify(p.name,arr,vis,{mag,el,con:Sky.constellation(Sky.lonOf(g.v)),dist:g.dist},mid));
+  });
+}
+function classify(name,arr,vis,extra,mid){
+  const T=night.times, ev=Sky.crossings(T,arr.map(a=>a.alt),name==='Moon'?-0.833:-0.5667);
+  const rise=(ev.find(e=>e.rising)||{}).ms||null, set=(ev.find(e=>!e.rising)||{}).ms||null;
+  let i0=vis.indexOf(true), i1=vis.lastIndexOf(true), status;
+  if(i0<0){ status=(extra.el!==undefined&&extra.el<16)?'glare':(extra.mag>6.2?'scope':'down');
+    if(status==='down'&&extra.el!==undefined&&extra.el<35){ const nearDusk=set&&info.sunset&&set>info.sunset&&set-info.sunset<3*36e5, nearDawn=rise&&info.sunrise&&rise<info.sunrise&&info.sunrise-rise<3*36e5; if(nearDusk||nearDawn) status='low'; } }
+  else { const dur=(i1-i0)*4*60000, nightLen=(info.dawn6&&info.dusk6)?info.dawn6-info.dusk6:12*36e5;
+    if(dur>nightLen*.72) status='all'; else if(T[i1]<mid) status='eve'; else if(T[i0]>mid) status='morn'; else status='part';
+    if(extra.mag!==undefined&&extra.mag>5&&name!=='Moon') status='binoc'; }
+  let best=-1, bAlt=-99; for(let k=i0;k>=0&&k<=i1;k++){ if(vis[k]&&arr[k].alt>bAlt){ bAlt=arr[k].alt; best=k; } }
+  if(best<0&&status==='scope'){ for(let k=0;k<arr.length;k++){ if(night.sun[k].alt<-12&&arr[k].alt>bAlt){ bAlt=arr[k].alt; best=k; } } }
+  return {name,arr,vis,rise,set,status,best,from:i0>=0?T[i0]:null,to:i1>=0?T[i1]:null,...extra};
+}
+
+/* ---------- render ---------- */
+const moonSVG=(lit,waxing,size)=>{ const r=size/2-2, c=size/2, k=2*lit-1, rx=Math.abs(k)*r;
+  // lit limb on the right when waxing (as seen from the northern hemisphere)
+  const sweepOuter=waxing?1:0, sweepInner=(k>0)===waxing?0:1;
+  const d=`M${c} ${c-r} A${r} ${r} 0 0 ${sweepOuter} ${c} ${c+r} A${rx} ${r} 0 0 ${sweepInner} ${c} ${c-r}Z`;
+  return `<svg class="moonart" viewBox="0 0 ${size} ${size}" aria-hidden="true"><circle cx="${c}" cy="${c}" r="${r}" fill="#1b2233"/><path d="${d}" fill="#ece9df"/><circle cx="${c}" cy="${c}" r="${r}" fill="none" stroke="rgba(230,233,242,.25)"/></svg>`; };
+function moonName(b){ const l=b.lit; if(l<.03) return ['अमावस्या','New moon']; if(l>.97) return ['पूर्णिमा','Full moon'];
+  if(Math.abs(l-.5)<.08) return b.waxing?['शुक्ल पक्ष · अर्ध चंद्र','First quarter']:['कृष्ण पक्ष · अर्ध चंद्र','Last quarter'];
+  return b.waxing?['शुक्ल पक्ष · बढ़ता चाँद',l<.5?'Waxing crescent':'Waxing gibbous']:['कृष्ण पक्ष · घटता चाँद',l<.5?'Waning crescent':'Waning gibbous']; }
+function brightWords(m){ if(m<-3) return ['बेहद चमकीला','brilliant']; if(m<-1) return ['बहुत चमकीला','very bright']; if(m<1) return ['चमकीला','bright']; if(m<3) return ['आसानी से दिखेगा','easy to spot']; if(m<6.2) return ['धुँधला','faint']; return ['आँख से नहीं','not naked-eye']; }
+
+function renderTimes(){ const I=info, tz=city.tz;
+  const ic=(p)=>`<svg viewBox="0 0 20 20" aria-hidden="true">${p}</svg>`;
+  const row=(icon,hi,en,t)=>`<li>${icon}<span><span class="hi">${hi}</span><small>${en}</small></span><b>${fmtT(t,tz)}</b></li>`;
+  $('times').innerHTML=
+    row(ic('<circle cx="10" cy="13" r="5" fill="#f2b04a"/><rect x="2" y="13" width="16" height="6" fill="#0a0f1b"/><line x1="2" y1="13" x2="18" y2="13" stroke="#8a94ae"/>'),'सूर्यास्त','Sunset',I.sunset)+
+    row(ic('<circle cx="10" cy="10" r="6" fill="none" stroke="#7a86b8" stroke-dasharray="2 2"/>'),'अँधेरा शुरू','Full darkness from',I.dusk18)+
+    row(ic('<circle cx="10" cy="10" r="6" fill="#ece9df"/><circle cx="13" cy="8" r="6" fill="#0a0f1b"/>'),'चंद्रोदय','Moonrise',I.moonrise)+
+    row(ic('<circle cx="10" cy="10" r="6" fill="#8a94ae"/><circle cx="13" cy="8" r="6" fill="#0a0f1b"/>'),'चंद्रास्त','Moonset',I.moonset)+
+    row(ic('<circle cx="10" cy="10" r="6" fill="none" stroke="#7a86b8" stroke-dasharray="2 2"/>'),'अँधेरा ख़त्म','Darkness ends',I.dawn18)+
+    row(ic('<circle cx="10" cy="13" r="5" fill="#ffcf7a"/><rect x="2" y="13" width="16" height="6" fill="#0a0f1b"/><line x1="2" y1="13" x2="18" y2="13" stroke="#8a94ae"/>'),'सूर्योदय','Sunrise',I.sunrise);
+}
+function renderGlance(){
+  const B=info.bodies.filter(b=>b.name!=='Moon'), group=s=>B.filter(b=>b.status===s);
+  const chip=b=>`<span class="chip"><i style="background:${COL[b.name]}"></i><span class="hi">${HI[b.name]}</span> <small>${b.name}</small></span>`;
+  const naked=B.filter(b=>['all','eve','morn','part'].includes(b.status));
+  const moon=info.bodies[0], mn=moonName(moon);
+  const rows=[['all','रात भर दिखेंगे','All night'],['binoc','बाइनोक्युलर से','With binoculars'],['low','धुंधलके में बहुत नीचे','Very low in twilight'],['eve','शाम को','Evening'],['part','रात में','Part of the night'],['morn','सुबह से पहले','Before dawn'],['glare','सूर्य की चमक में छिपे','Hidden by the Sun'],['down','आज रात नहीं','Not up tonight'],['scope','दूरबीन चाहिए','Telescope needed']]
+    .filter(r=>group(r[0]).length).map(r=>`<div class="row2"><span class="lbl"><span class="hi" style="letter-spacing:0;text-transform:none;font-size:13px;color:var(--fg)">${r[1]}</span> · ${r[2]}</span><span class="chips">${group(r[0]).map(chip).join('')}</span></div>`).join('');
+  $('glance').innerHTML=`<h2>${esc(city.hi)} · ${esc(city.en)} · <b>${new Intl.DateTimeFormat('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric',timeZone:'UTC'}).format(new Date($('date').value+'T12:00:00Z'))}</b></h2>
+    <div class="stats" style="grid-template-columns:repeat(auto-fit,minmax(140px,1fr))">
+      <div class="stat"><div class="k">दिखने वाले ग्रह · Planets</div><div class="n">${naked.length}</div><div class="s">with the naked eye</div></div>
+      <div class="stat"><div class="k">सूर्यास्त · Sunset</div><div class="n" style="font-size:22px">${fmtT(info.sunset)}</div><div class="s">dark by ${fmtT(info.dusk18)}</div></div>
+      <div class="stat" style="display:flex;gap:12px;align-items:center">${moonSVG(moon.lit,moon.waxing,64)}<div><div class="k">चंद्रमा · Moon</div><div class="n" style="font-size:22px">${Math.round(moon.lit*100)}%</div><div class="s hi">${mn[0]}</div></div></div>
+    </div>${rows}`;
+}
+function spark(b){ const W=240,H=44,T=night.times, n=T.length; const X=k=>k/(n-1)*W, Y=a=>H-4-Math.max(0,a)/90*(H-8);
+  let p='',v=''; b.arr.forEach((a,k)=>{ p+=(k?'L':'M')+X(k).toFixed(1)+' '+Y(a.alt).toFixed(1); });
+  b.vis.forEach((on,k)=>{ if(on) v+=`<rect x="${X(k).toFixed(1)}" y="${Y(b.arr[k].alt).toFixed(1)}" width="${(W/(n-1)+.6).toFixed(1)}" height="${(H-4-Y(b.arr[k].alt)).toFixed(1)}" fill="rgba(var(--sun-rgb),.28)"/>`; });
+  const sunset=info.sunset?X((info.sunset-T[0])/(T[n-1]-T[0])*(n-1)):0, sunrise=info.sunrise?X((info.sunrise-T[0])/(T[n-1]-T[0])*(n-1)):W;
+  return `<svg class="spark" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true"><rect x="0" y="0" width="${sunset}" height="${H}" fill="rgba(120,160,220,.07)"/><rect x="${sunrise}" y="0" width="${W-sunrise}" height="${H}" fill="rgba(120,160,220,.07)"/><line x1="0" x2="${W}" y1="${H-4}" y2="${H-4}" stroke="rgba(150,168,210,.3)"/>${v}<path d="${p}" fill="none" stroke="${COL[b.name]}" stroke-width="1.6" stroke-linejoin="round" vector-effect="non-scaling-stroke"/></svg>`; }
+function renderCards(){
+  const order={all:0,eve:1,part:2,morn:3,binoc:4,low:5,scope:6,glare:7,down:8};
+  const list=[info.bodies[0],...info.bodies.slice(1).sort((a,b)=>order[a.status]-order[b.status]||a.mag-b.mag)];
+  $('cards').innerHTML=list.map(b=>{
+    const isMoon=b.name==='Moon', st=isMoon?(b.from?(b.status):'down'):b.status, S=STATUS[st]||STATUS.part, visible=['all','eve','morn','part','binoc'].includes(st);
+    const bt=b.best>=0?b.arr[b.best]:null, dir=bt?Sky.dir(bt.az):null, bw=brightWords(b.mag);
+    let tip='';
+    if(isMoon){ const mn=moonName(b); tip=`<span class="hi">${mn[0]}</span>${mn[1]}, ${Math.round(b.lit*100)}% lit.`; }
+    else if(st==='glare') tip=`<span class="hi">सूर्य के बहुत पास (${Math.round(b.el)}°), इसलिए आज नहीं दिखेगा।</span>Only ${Math.round(b.el)}° from the Sun, lost in its glare.`;
+    else if(st==='scope') tip=`<span class="hi">आँख से नहीं दिखेगा, दूरबीन चाहिए।</span>Too faint for the eye (magnitude ${b.mag.toFixed(1)}).`;
+    else if(st==='low'){ const dusk=b.set&&info.sunset&&b.set>info.sunset; const t=dusk?info.sunset+35*60000:info.sunrise-45*60000, kk=Math.max(0,night.times.findIndex(x=>x>=t)), p=b.arr[kk], dr=Sky.dir(p.az);
+      tip=`<span class="hi">${dusk?'सूर्यास्त':'सूर्योदय'} ${dusk?'के 35 मिनट बाद':'से 45 मिनट पहले'} ${dr.hi} दिशा में क्षितिज के पास (${Math.max(0,Math.round(p.alt))}°) ढूँढिए। खुला क्षितिज चाहिए।</span>Try ${dusk?'35 minutes after sunset':'45 minutes before sunrise'}, just ${Math.max(0,Math.round(p.alt))}° above the ${dr.en} horizon. You need a clear, flat horizon; binoculars help.`; }
+    else if(st==='down') tip=`<span class="hi">आज रात अँधेरे में क्षितिज के नीचे रहेगा।</span>Below the horizon while it is dark.`;
+    else if(bt) tip=`<span class="hi">${fmtT(night.times[b.best])} बजे ${dir.hi} दिशा में, क्षितिज से ${Math.round(bt.alt)}° ऊपर देखिए।</span>Look ${dir.en}, ${Math.round(bt.alt)}° up at ${fmtT(night.times[b.best])}.${b.mag>5?' Binoculars help.':''}`;
+    const dot=isMoon?`<span class="dot" style="background:radial-gradient(circle at 35% 35%,#fff,#bdb9ad)"></span>`:`<span class="dot" style="background:radial-gradient(circle at 35% 35%,#fff 0,${COL[b.name]} 45%,#111 100%)"></span>`;
+    return `<article class="pc ${visible?'vis':''}"><header>${dot}<h3>${HI[b.name]}<small>${b.name} · <span class="hi">${b.con.hi}</span> ${b.con.en}</small></h3><span class="st ${({all:'all',eve:'eve',morn:'morn',part:'part',glare:'glare'})[st]||'no'}"><span class="hi">${S[0]}</span> · ${S[1]}</span></header>
+      ${spark(b)}
+      <dl><dt>उदय · Rises</dt><dd>${fmtT(b.rise)}</dd><dt>अस्त · Sets</dt><dd>${fmtT(b.set)}</dd>
+      ${visible?`<dt>देखने का समय · Best</dt><dd>${fmtT(b.from)} – ${fmtT(b.to)}</dd>`:''}
+      ${bt?`<dt>दिशा · Direction</dt><dd><span class="hi">${dir.hi}</span> · ${dir.en} · ${Math.round(bt.alt)}°</dd>`:''}
+      <dt>चमक · Brightness</dt><dd><span class="hi">${bw[0]}</span>${isMoon?'':' · '+(b.mag>0?'+':'')+b.mag.toFixed(1)}</dd></dl>
+      <p class="tip">${tip}</p></article>`; }).join('');
+}
+function renderTimeline(){
+  const T=night.times, n=T.length, t0=(info.sunset||T[0])-90*60000, t1=(info.sunrise||T[n-1])+90*60000;
+  const W=1000, rowH=30, top=30, rows=info.bodies.length, H=top+rows*rowH+16, L=150, R=12;
+  const X=ms=>L+(W-L-R)*(ms-t0)/(t1-t0);
+  let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="When each planet and the Moon are above the horizon tonight">`;
+  // sky colour bands by sun altitude
+  for(let k=0;k<n-1;k++){ if(T[k+1]<t0||T[k]>t1) continue; const a=night.sun[k].alt; const c=a>-0.8?'rgba(110,150,210,.16)':a>-6?'#14223f':a>-12?'#0e1830':a>-18?'#0a1226':'#060a15';
+    s+=`<rect x="${X(Math.max(T[k],t0)).toFixed(1)}" y="${top-6}" width="${(X(Math.min(T[k+1],t1))-X(Math.max(T[k],t0))+.5).toFixed(1)}" height="${rows*rowH+8}" fill="${c}"/>`; }
+  // hour ticks
+  const h0=new Date(t0); let tick=Math.ceil(t0/36e5)*36e5;
+  for(;tick<=t1;tick+=36e5){ const x=X(tick), hr=new Intl.DateTimeFormat('en-IN',{timeZone:city.tz,hour:'numeric',hour12:true}).format(new Date(tick)).replace(' am',' AM').replace(' pm',' PM'), h24=+new Intl.DateTimeFormat('en-GB',{timeZone:city.tz,hour:'2-digit',hourCycle:'h23'}).format(new Date(tick)); s+=`<line x1="${x}" x2="${x}" y1="${top-6}" y2="${top+rows*rowH+2}" stroke="rgba(150,168,210,.08)"/>`+(h24%2===0?`<text x="${x}" y="${top-12}" text-anchor="middle" font-size="12" fill="#8a94ae">${hr}</text>`:''); }
+  info.bodies.forEach((b,i)=>{ const y=top+i*rowH+rowH/2;
+    s+=`<text x="${L-12}" y="${y+4}" text-anchor="end" font-size="13" fill="#e6e9f2" font-family="Noto Sans Devanagari, IBM Plex Sans, sans-serif">${HI[b.name]} <tspan fill="#8a94ae" font-size="11">${b.name}</tspan></text>`;
+    let up=null; for(let k=0;k<n;k++){ const on=b.arr[k].alt>0&&T[k]>=t0&&T[k]<=t1; if(on&&up===null) up=k; if((!on||k===n-1)&&up!==null){ s+=`<rect x="${X(T[up]).toFixed(1)}" y="${y-3}" width="${Math.max(1,X(T[k])-X(T[up])).toFixed(1)}" height="6" rx="3" fill="rgba(150,168,210,.35)"/>`; up=null; } }
+    let v=null; for(let k=0;k<n;k++){ const on=b.vis[k]&&T[k]>=t0&&T[k]<=t1; if(on&&v===null) v=k; if((!on||k===n-1)&&v!==null){ s+=`<rect x="${X(T[v]).toFixed(1)}" y="${y-6}" width="${Math.max(2,X(T[k])-X(T[v])).toFixed(1)}" height="12" rx="6" fill="${b.name==='Moon'?'#d9d5c8':'var(--sun)'}" opacity=".9"/>`; v=null; } }
+  });
+  const now=Date.now(); if(now>t0&&now<t1){ const x=X(now); s+=`<line x1="${x}" x2="${x}" y1="${top-6}" y2="${top+rows*rowH+2}" stroke="#ff8a6e" stroke-width="1.5"/><text x="${x+4}" y="${top+rows*rowH+14}" font-size="11" fill="#ff8a6e">अभी · now</text>`; }
+  s+='</svg>'; $('timeline').innerHTML=s;
+}
+
+/* ---------- sky panorama ---------- */
+const cv=$('sky'), g=cv.getContext('2d');
+function sliderRange(){ const T=night.times; return [(info.sunset||T[0])-20*60000,(info.sunrise||T[T.length-1])+20*60000]; }
+function timeAt(v){ const [a,b]=sliderRange(); return a+(b-a)*v/100; }
+function drawSky(ms){
+  const d=Math.min(2,devicePixelRatio||1), W=Math.round(cv.clientWidth*d)||1200, H=Math.round(Math.max(W*.36,Math.min(W*.8,300*d))); if(cv.width!==W||cv.height!==H){ cv.width=W; cv.height=H; }
+  const jd=Sky.jd(ms), sunNow=(()=>{ const T=night.times; const k=Math.max(0,Math.min(T.length-1,Math.round((ms-T[0])/(T[1]-T[0])))); return k; })();
+  const k=sunNow, sa=night.sun[k].alt, ground=H*.84, X=az=>(((az-180+540)%360)-180)/360*W+W/2, Y=alt=>ground-(alt/90)*(ground-H*.04);
+  // sky colour from Sun altitude
+  const mix=(a,b,t)=>a.map((v,i)=>Math.round(v+(b[i]-v)*t)); const day=[58,104,168], civ=[34,48,92], nau=[16,24,52], ast=[6,9,22];
+  let top,bot; if(sa>0){ top=day; bot=[150,180,210]; } else if(sa>-6){ const t=-sa/6; top=mix(day,civ,t); bot=mix([230,150,110],[60,60,110],t); } else if(sa>-12){ const t=(-sa-6)/6; top=mix(civ,nau,t); bot=mix([60,60,110],[22,28,60],t); } else if(sa>-18){ const t=(-sa-12)/6; top=mix(nau,ast,t); bot=mix([22,28,60],[10,14,30],t); } else { top=ast; bot=[10,14,30]; }
+  const gr=g.createLinearGradient(0,0,0,ground); gr.addColorStop(0,`rgb(${top})`); gr.addColorStop(1,`rgb(${bot})`); g.fillStyle=gr; g.fillRect(0,0,W,ground);
+  // faint decorative stars once dark
+  if(sa<-8){ const r=Lab.rng(11), a=Math.min(1,(-sa-8)/8); for(let i=0;i<260;i++){ const x=r()*W, y=r()*ground*.98, s=r(); g.fillStyle=`rgba(225,230,255,${(.15+.45*s)*a})`; g.fillRect(x,y,s>.9?2*d:1*d,s>.9?2*d:1*d); } }
+  // altitude grid
+  g.strokeStyle='rgba(200,215,255,.08)'; g.lineWidth=1*d; [30,60].forEach(a=>{ g.beginPath(); g.moveTo(0,Y(a)); g.lineTo(W,Y(a)); g.stroke(); g.fillStyle='rgba(200,215,255,.35)'; g.font=`${10*d}px "IBM Plex Mono",monospace`; g.fillText(a+'°',6*d,Y(a)-4*d); });
+  // ecliptic
+  const ec=Sky.ecliptic(jd,city.lat,city.lon); g.setLineDash([5*d,6*d]); g.strokeStyle='rgba(var(--sun-rgb),.0)'; g.strokeStyle='rgba(242,176,74,.4)'; g.lineWidth=1.2*d; g.beginPath(); let pen=false, lastX=null;
+  ec.forEach(p=>{ const x=X(p.az), y=Y(p.alt); if(p.alt<-2||(lastX!==null&&Math.abs(x-lastX)>W/2)){ pen=false; } if(p.alt>=-2){ if(!pen){ g.moveTo(x,y); pen=true; } else g.lineTo(x,y); } lastX=x; }); g.stroke(); g.setLineDash([]);
+  // ground
+  const gg=g.createLinearGradient(0,ground,0,H); gg.addColorStop(0,'#0b0f17'); gg.addColorStop(1,'#05070c'); g.fillStyle=gg; g.fillRect(0,ground,W,H-ground);
+  // simple skyline silhouette
+  g.fillStyle='#070a10'; const r2=Lab.rng(5); let x=0; g.beginPath(); g.moveTo(0,ground); while(x<W){ const w=(18+r2()*60)*d, h=(r2()<.25?0:4+r2()*16)*d; g.lineTo(x,ground-h); g.lineTo(x+w,ground-h); x+=w; } g.lineTo(W,ground); g.closePath(); g.fill();
+  g.strokeStyle='rgba(200,215,255,.25)'; g.beginPath(); g.moveTo(0,ground); g.lineTo(W,ground); g.stroke();
+  // compass
+  const CMP=[[0,'N','उत्तर'],[45,'NE',''],[90,'E','पूर्व'],[135,'SE',''],[180,'S','दक्षिण'],[225,'SW',''],[270,'W','पश्चिम'],[315,'NW','']];
+  g.textAlign='center'; CMP.forEach(([az,en,hi])=>{ const x=X(az)+(az===0?W/2-4*d:0); const xs=az===0?[4*d+14*d,W-18*d]:[x]; xs.forEach(xx=>{ g.fillStyle=hi?'#e6e9f2':'#8a94ae'; g.font=`500 ${(hi?13:11)*d}px "IBM Plex Mono",monospace`; g.fillText(en,xx,ground+18*d); if(hi){ g.font=`${11*d}px "Noto Sans Devanagari",sans-serif`; g.fillStyle='#8a94ae'; g.fillText(hi,xx,ground+33*d); } }); });
+  g.textAlign='left';
+  // Sun
+  const s=night.sun[k]; if(s.alt>-4){ const sx=X(s.az), sy=Y(s.alt); const sg=g.createRadialGradient(sx,sy,0,sx,sy,40*d); sg.addColorStop(0,'rgba(255,240,200,1)'); sg.addColorStop(.25,'rgba(255,190,90,.8)'); sg.addColorStop(1,'rgba(255,150,60,0)'); g.fillStyle=sg; g.beginPath(); g.arc(sx,sy,40*d,0,7); g.fill(); }
+  // bodies
+  info.bodies.forEach(b=>{ const p=b.arr[k]; if(p.alt<-1) return; const x=X(p.az), y=Y(p.alt);
+    if(b.name==='Moon'){ const R=13*d; g.fillStyle='#1b2233'; g.beginPath(); g.arc(x,y,R,0,7); g.fill(); const kk=2*b.lit-1; g.save(); g.beginPath(); g.arc(x,y,R,0,7); g.clip(); g.fillStyle='#ece9df';
+      g.beginPath(); g.arc(x,y,R,-Math.PI/2,Math.PI/2,!b.waxing); g.ellipse(x,y,Math.abs(kk)*R,R,0,Math.PI/2,-Math.PI/2,(kk>0)===b.waxing?!b.waxing:b.waxing); g.fill(); g.restore();
+      const gl=g.createRadialGradient(x,y,R,x,y,R*3); gl.addColorStop(0,'rgba(236,233,223,.18)'); gl.addColorStop(1,'rgba(236,233,223,0)'); g.fillStyle=gl; g.beginPath(); g.arc(x,y,R*3,0,7); g.fill(); }
+    else { const R=Math.max(2.2,5.5-b.mag*.9)*d*.9; const gl=g.createRadialGradient(x,y,0,x,y,R*3.2); gl.addColorStop(0,COL[b.name]); gl.addColorStop(.35,COL[b.name]+'88'); gl.addColorStop(1,COL[b.name]+'00'); g.fillStyle=gl; g.beginPath(); g.arc(x,y,R*3.2,0,7); g.fill(); g.fillStyle='#fff'; g.beginPath(); g.arc(x,y,R*.55,0,7); g.fill(); }
+    const faded=!b.vis[k]&&b.name!=='Moon';
+    g.font=`600 ${13*d}px "Noto Sans Devanagari",sans-serif`; g.fillStyle=faded?'rgba(230,233,242,.45)':'#fff'; g.fillText(HI[b.name],x+12*d,y-6*d); g.font=`${10.5*d}px "IBM Plex Mono",monospace`; g.fillStyle='rgba(200,210,235,.7)'; g.fillText(`${b.name} · ${Math.round(p.alt)}°`,x+12*d,y+8*d); });
+  $('tClock').textContent=fmtT(ms);
+  $('skyWhen').textContent=' · '+fmtT(ms)+(sa>-0.8?' · day':sa>-6?' · civil twilight':sa>-12?' · twilight':' · night');
+}
+function initSlider(){ const [a,b]=sliderRange(), now=Date.now(); let v;
+  if(now>a&&now<b) v=(now-a)/(b-a)*100; else { const t=(info.dusk12||a+60*60000); v=(t-a)/(b-a)*100; }
+  $('tSlider').value=v.toFixed(1); $('tSlider').step='0.1'; drawSky(timeAt(+$('tSlider').value)); }
+$('tSlider').addEventListener('input',()=>{ playing=false; $('playBtn').setAttribute('aria-pressed','false'); $('playBtn').textContent='▶ रात चलाइए · Play the night'; drawSky(timeAt(+$('tSlider').value)); });
+$('playBtn').onclick=()=>{ playing=!playing; $('playBtn').setAttribute('aria-pressed',playing); $('playBtn').textContent=playing?'❚❚ रोकिए · Pause':'▶ रात चलाइए · Play the night';
+  if(playing){ if(+$('tSlider').value>=99.5) $('tSlider').value=0; let last=performance.now(); const step=t=>{ if(!playing) return; const dt=(t-last)/1000; last=t; let v=+$('tSlider').value+dt*100/14; if(v>=100){ v=100; playing=false; $('playBtn').setAttribute('aria-pressed','false'); $('playBtn').textContent='▶ फिर से · Play again'; } $('tSlider').value=v; drawSky(timeAt(v)); if(playing) requestAnimationFrame(step); }; requestAnimationFrame(step); } };
+addEventListener('resize',()=>{ if(night) drawSky(timeAt(+$('tSlider').value)); });
+
+/* ---------- controls ---------- */
+const sel_=$('city');
+sel_.innerHTML=CITIES.map((c,i)=>`<option value="${i}">${c.hi} · ${c.en}</option>`).join('')+'<option value="geo" hidden>📍 मेरी जगह · My location</option>';
+const setCitySelect=()=>{ const i=CITIES.findIndex(c=>c.en===city.en); if(i>=0) sel_.value=String(i); else { sel_.querySelector('option[value=geo]').hidden=false; sel_.value='geo'; } };
+setCitySelect();
+$('date').value=todayStr(city.tz);
+function run(){ compute(); renderTimes(); renderGlance(); renderCards(); renderTimeline(); initSlider(); try{ localStorage.setItem('sky-city',JSON.stringify(city)); }catch(e){} }
+sel_.onchange=()=>{ if(sel_.value==='geo') return; city=CITIES[+sel_.value]; run(); };
+$('date').onchange=run;
+$('dToday').onclick=()=>{ $('date').value=todayStr(city.tz); run(); };
+$('dTom').onclick=()=>{ $('date').value=todayStr(city.tz,1); run(); };
+$('locBtn').onclick=()=>{ const msg=$('locMsg'); msg.hidden=false;
+  if(!navigator.geolocation){ msg.textContent='Location is not available in this browser. Pick the nearest city instead.'; return; }
+  msg.textContent='Finding your location…';
+  navigator.geolocation.getCurrentPosition(p=>{ const tz=Intl.DateTimeFormat().resolvedOptions().timeZone||IST;
+      city={en:'My location',hi:'मेरी जगह',lat:+p.coords.latitude.toFixed(3),lon:+p.coords.longitude.toFixed(3),tz};
+      msg.textContent=`Using ${city.lat.toFixed(2)}°, ${city.lon.toFixed(2)}° (${tz}). Your location stays in this browser.`; setCitySelect(); run(); },
+    ()=>{ msg.textContent='Location was not shared. Pick the nearest city from the list instead.'; },{timeout:10000,maximumAge:6e5}); };
+run();
+})();
+</script>
+</body>
+</html>

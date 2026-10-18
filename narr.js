@@ -65,7 +65,7 @@ function mount(){
     g.clearRect(0,0,W,H); const N=Math.max(24,Math.floor(W/(7*d))), bw=W/N;
     let real=false; if(an&&!au.paused){ an.getByteFrequencyData(freq); let sum=0; for(const v of freq) sum+=v; if(sum>0){ real=true; silentFrames=0; } else silentFrames++; }
     const t=au.currentTime, c=caps(), speaking=c.some(x=>t>=x[0]&&t<=x[1])&&!au.paused, now=performance.now()/1000;
-    const grd=g.createLinearGradient(0,0,W,0); grd.addColorStop(0,'rgba(201,131,42,.9)'); grd.addColorStop(.5,'rgba(255,214,138,1)'); grd.addColorStop(1,'rgba(201,131,42,.9)'); g.fillStyle=grd;
+    const cs=getComputedStyle(document.documentElement), lo=cs.getPropertyValue('--sun-lo').trim()||'#c9832a', hi=cs.getPropertyValue('--sun-hi').trim()||'#ffd68a'; const grd=g.createLinearGradient(0,0,W,0); grd.addColorStop(0,lo); grd.addColorStop(.5,hi); grd.addColorStop(1,lo); g.fillStyle=grd;
     for(let i=0;i<N;i++){ const m=Math.abs(i-(N-1)/2)/((N-1)/2); let v;
       if(real){ const bin=Math.floor(2+m*freq.length*.5); v=Math.min(1,freq[bin]/255*1.15); }
       else v=au.paused?.04:(speaking?(.25+.55*Math.abs(Math.sin(now*9+i*.7)*Math.sin(now*3.3+i*.31))):.06)*(1-m*.6);

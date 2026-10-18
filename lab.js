@@ -96,7 +96,7 @@ Lab.geoLon=function(p,jd){ const P=Lab.kepler(p,jd), E=Lab.kepler(Lab.PLANETS[2]
 Lab.isRetro=function(p,jd){ let d=Lab.geoLon(p,jd+.5)-Lab.geoLon(p,jd-.5); d=(d+3*Math.PI)%(2*Math.PI)-Math.PI; return d<0; };
 
 /* ---------- previous / next tool links on tool pages ---------- */
-Lab.TOOLS=[['orrery.html','Kepler Orrery'],['anomaly.html','Anomaly Hunter'],['mission.html','Mission Survival'],['landing.html','Landing Sites'],['discovery.html','Discovery Engine']];
+Lab.TOOLS=[['sky.html','Tonight\'s Sky'],['orrery.html','Kepler Orrery'],['marswalk.html','Marswalk Planner'],['anomaly.html','Anomaly Hunter'],['mission.html','Mission Survival'],['landing.html','Landing Sites'],['discovery.html','Discovery Engine']];
 document.addEventListener('DOMContentLoaded',()=>{
   const cur=document.querySelector('.nav a.tab[aria-current="page"]'), wrap=document.querySelector('main.wrap');
   if(!cur||!wrap) return;
