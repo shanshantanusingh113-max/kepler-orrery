@@ -6,7 +6,7 @@ A browser-based planetary science lab: a live 3D orrery plus four analysis tools
 
 | Page | What it does |
 |---|---|
-| `index.html` · **Home** | Today's planet positions computed live, current retrograde planets and the next station, and a guide to the tools |
+| `index.html` · **Home** | A live 3D solar system behind the page (scroll-driven camera, animated Sun, asteroid belt, comet), today's real numbers, animated Kepler's-laws demos, a light-speed race, and a Hindi/English voice intro with synced captions |
 | `orrery.html` · **Kepler Orrery** | 3D solar system driven by real Keplerian elements, with live orbital-motion detection |
 | `anomaly.html` · **Planetary Anomaly Hunter** | Registers two images of the same site, screens sensor artifacts, ranks surface changes and rare textures with confidence scores |
 | `mission.html` · **Mission Failure Predictor** | Monte Carlo rover survival (power, thermal, comms, wear-out) and a ranking of design changes by survival gain |
@@ -42,6 +42,9 @@ python3 -m http.server 8000
 ```
 
 ## Tech
+
+- `space.js`: shared three.js effects (shader Sun, GPU asteroid belt, twinkling stars, comet with anti-sunward tail)
+- Narration generated offline with Piper neural TTS (Hindi voice *hi_IN-pratham*, English voice *en_US-ryan*) over a synthesized ambient bed; no copyrighted music
 
 - [three.js](https://threejs.org/) r128 with OrbitControls (loaded from CDN)
 - Procedural planet textures generated on a canvas at load time

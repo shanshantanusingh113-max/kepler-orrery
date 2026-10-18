@@ -107,5 +107,49 @@ document.addEventListener('DOMContentLoaded',()=>{
   const foot=wrap.querySelector('.foot'); foot?wrap.insertBefore(el,foot):wrap.appendChild(el);
 });
 
+/* ---------- UI motion: logo, nav indicator, entrance, glow, ripple, count-up, starfield ---------- */
+Lab.reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
+document.addEventListener('DOMContentLoaded',()=>{
+  const reduced=Lab.reduced;
+  const mark=document.querySelector('.nav .mark');
+  if(mark&&!mark.querySelector('svg')) mark.insertAdjacentHTML('afterbegin','<svg class="logo" viewBox="0 0 24 24" aria-hidden="true"><g transform="rotate(-22 12 12)"><ellipse cx="12" cy="12" rx="10.5" ry="4.4" fill="none" stroke="rgba(230,233,242,.38)" stroke-width="1"/><g transform="translate(12 12) scale(1 .42) translate(-12 -12)"><g class="orb"><circle cx="22.5" cy="12" r="2.1" fill="#86b6ff"/></g></g></g><circle class="core" cx="12" cy="12" r="3.4" fill="#f2b04a"/></svg>');
+  const navIn=document.querySelector('.nav .nav-in');
+  if(navIn){ navIn.classList.add('has-ind'); const ind=document.createElement('span'); ind.className='nav-ind'; navIn.prepend(ind);
+    const cur=navIn.querySelector('a.tab[aria-current="page"]');
+    const moveTo=el=>{ if(!el){ ind.style.opacity=0; return; } ind.style.opacity=1; ind.style.width=el.offsetWidth+'px'; ind.style.height=el.offsetHeight+'px'; ind.style.top=el.offsetTop+'px'; ind.style.transform=`translateX(${el.offsetLeft}px)`; };
+    requestAnimationFrame(()=>{ moveTo(cur); requestAnimationFrame(()=>ind.classList.add('ready')); });
+    navIn.querySelectorAll('a.tab').forEach(a=>{ a.addEventListener('mouseenter',()=>moveTo(a)); a.addEventListener('focus',()=>moveTo(a)); });
+    navIn.addEventListener('mouseleave',()=>moveTo(cur)); addEventListener('resize',()=>moveTo(cur));
+    if(document.fonts&&document.fonts.ready) document.fonts.ready.then(()=>moveTo(cur)); }
+  if(!reduced){ let i=0; document.querySelectorAll('main.wrap .phead, main.wrap .layout > aside > .card, main.wrap .layout > div > .card, main.wrap .layout > div > .row > .card, main.wrap .layout .mapgrid .card, main.wrap .pager').forEach(el=>{ el.classList.add('enter'); el.style.setProperty('--i',Math.min(i++,12)); }); }
+  document.addEventListener('pointermove',e=>{ const el=e.target.closest&&e.target.closest('.card,.stat,.pager a,.finding'); if(!el) return; const r=el.getBoundingClientRect(); el.style.setProperty('--mx',(e.clientX-r.left)+'px'); el.style.setProperty('--my',(e.clientY-r.top)+'px'); },{passive:true});
+  document.addEventListener('pointerdown',e=>{ if(reduced) return; const b=e.target.closest&&e.target.closest('.btn,.seg button'); if(!b) return; const r=b.getBoundingClientRect(), s=document.createElement('span'), d=Math.max(r.width,r.height)*2.2; s.className='ripple'; s.style.cssText=`width:${d}px;height:${d}px;left:${e.clientX-r.left-d/2}px;top:${e.clientY-r.top-d/2}px`; b.appendChild(s); setTimeout(()=>s.remove(),700); });
+  const animateNum=el=>{ if(el.dataset.counted) return; el.dataset.counted='1'; if(reduced) return;
+    const node=[...el.childNodes].find(n=>n.nodeType===3&&/\d/.test(n.textContent)); if(!node) return;
+    const m=node.textContent.match(/^(\s*)(\d[\d,]*\.?\d*)(.*)$/s); if(!m) return;
+    const raw=m[2].replace(/,/g,''), to=parseFloat(raw), dec=(raw.split('.')[1]||'').length, comma=m[2].includes(','); if(!isFinite(to)||to===0) return;
+    const t0=performance.now(); const step=t=>{ const k=Math.min(1,(t-t0)/900), v=to*(1-Math.pow(1-k,3)); node.textContent=m[1]+(comma?v.toLocaleString('en-US',{minimumFractionDigits:dec,maximumFractionDigits:dec}):v.toFixed(dec))+m[3]; if(k<1) requestAnimationFrame(step); }; requestAnimationFrame(step); };
+  const scan=root=>{ if(root.nodeType!==1) return; if(root.matches('.stat')){ root.classList.add('pop'); root.style.setProperty('--i',[...root.parentNode.children].indexOf(root)); }
+    root.querySelectorAll('.stat').forEach((s,i)=>{ s.classList.add('pop'); s.style.setProperty('--i',i); }); root.querySelectorAll('.stat .n').forEach(animateNum); if(root.matches('.stat .n')) animateNum(root); };
+  document.querySelectorAll('.stats').forEach(scan);
+  new MutationObserver(ms=>ms.forEach(m=>m.addedNodes.forEach(scan))).observe(document.body,{childList:true,subtree:true});
+  if(!document.body.hasAttribute('data-nostars')) starfield(reduced);
+});
+function starfield(reduced){
+  document.documentElement.classList.add('has-stars');
+  const c=document.createElement('canvas'); c.className='bgstars'; c.setAttribute('aria-hidden','true'); document.body.prepend(c);
+  const g=c.getContext('2d'), r=Lab.rng(7); let W,H,d,stars=[],shoot=null,t0=performance.now(),vis=true;
+  const size=()=>{ d=Math.min(2,devicePixelRatio||1); W=c.width=Math.round(innerWidth*d); H=c.height=Math.round(innerHeight*d); stars=[]; const n=Math.round(innerWidth*innerHeight/4200);
+    for(let i=0;i<n;i++) stars.push({x:r()*W,y:r()*H,z:.2+r()*.8,p:r()*6.28,s:.35+Math.pow(r(),5)*1.7,c:r()<.12?'255,214,170':r()<.25?'190,210,255':'225,230,255'}); draw(performance.now()); };
+  const draw=now=>{ const t=(now-t0)/1000; g.clearRect(0,0,W,H); const off=scrollY*d;
+    for(const s of stars){ const y=((s.y-off*s.z*.12)%H+H)%H, a=(.3+.5*Math.pow(Math.sin(t*(.5+s.z*.9)+s.p),2))*s.z; g.fillStyle=`rgba(${s.c},${a.toFixed(3)})`; g.beginPath(); g.arc(s.x,y,s.s*d,0,6.283); g.fill(); }
+    if(!reduced){ if(!shoot&&Math.random()<.003) shoot={x:Math.random()*W*.7,y:Math.random()*H*.35,vx:(7+Math.random()*5)*d,vy:(2.5+Math.random()*2.5)*d,l:0};
+      if(shoot){ shoot.l++; const x=shoot.x+shoot.vx*shoot.l, y=shoot.y+shoot.vy*shoot.l, gr=g.createLinearGradient(x,y,x-shoot.vx*14,y-shoot.vy*14); gr.addColorStop(0,'rgba(255,240,210,.85)'); gr.addColorStop(1,'rgba(255,240,210,0)'); g.strokeStyle=gr; g.lineWidth=1.3*d; g.beginPath(); g.moveTo(x,y); g.lineTo(x-shoot.vx*14,y-shoot.vy*14); g.stroke(); if(shoot.l>50) shoot=null; } } };
+  const loop=now=>{ if(!vis) return; draw(now); requestAnimationFrame(loop); };
+  size(); addEventListener('resize',size);
+  if(!reduced){ requestAnimationFrame(loop); document.addEventListener('visibilitychange',()=>{ vis=!document.hidden; if(vis) requestAnimationFrame(loop); }); }
+  else addEventListener('scroll',()=>draw(performance.now()),{passive:true});
+}
+
 window.Lab=Lab;
 })();

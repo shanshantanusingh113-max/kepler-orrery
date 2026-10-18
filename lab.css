@@ -112,3 +112,48 @@ svg text{font-family:var(--f-mono)}
 .pager .next{text-align:right;grid-column:2}
 .pager .prev::after{content:""}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+/* ===== motion layer ===== */
+.has-stars body{background:transparent}
+.bgstars{position:fixed;inset:0;width:100%;height:100%;z-index:-1;pointer-events:none}
+.nav .mark{display:inline-flex;align-items:center;gap:9px}
+.logo{width:22px;height:22px;flex:none;overflow:visible}
+.logo .orb{transform-box:view-box;transform-origin:12px 12px;animation:orbit 5s linear infinite}
+.logo .core{filter:drop-shadow(0 0 4px rgba(242,176,74,.8));animation:corePulse 3s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+@keyframes orbit{to{transform:rotate(360deg)}}
+@keyframes corePulse{50%{transform:scale(1.12)}}
+.nav-in.has-ind{position:relative}
+.nav-ind{position:absolute;left:0;top:0;border-radius:7px;background:rgba(150,168,210,.14);box-shadow:inset 0 -2px 0 var(--sun);opacity:0;pointer-events:none;z-index:0}
+.nav-ind.ready{transition:transform .38s cubic-bezier(.2,.8,.2,1),width .38s cubic-bezier(.2,.8,.2,1),opacity .2s}
+.nav-in.has-ind a.tab{position:relative;z-index:1}
+.nav-in.has-ind a.tab[aria-current="page"],.nav-in.has-ind a.tab:hover{background:transparent}
+.card,.stat{background:radial-gradient(460px circle at var(--mx,-999px) var(--my,-999px),rgba(242,176,74,.075),transparent 42%),rgba(10,15,27,.84);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);transition:border-color .3s,box-shadow .3s}
+.card:hover,.stat:hover{border-color:rgba(242,176,74,.28)}
+.pager a{background:radial-gradient(300px circle at var(--mx,-999px) var(--my,-999px),rgba(242,176,74,.1),transparent 45%),rgba(10,15,27,.84)}
+.pager .next::after{content:" →";display:inline-block;transition:transform .3s}
+.pager .prev{flex-direction:column}
+.pager .prev small::before{content:"← "}
+.pager a:hover::after{transform:translateX(5px)}
+.btn,.seg button{position:relative;overflow:hidden;isolation:isolate}
+.ripple{position:absolute;border-radius:50%;background:rgba(255,214,150,.3);transform:scale(0);animation:rip .7s ease-out forwards;pointer-events:none;z-index:-1}
+@keyframes rip{to{transform:scale(1);opacity:0}}
+.btn.primary{background-image:linear-gradient(110deg,transparent 35%,rgba(255,255,255,.45) 48%,transparent 62%);background-size:260% 100%;background-position:130% 0;background-repeat:no-repeat}
+.btn{transition:border-color .2s,transform .2s,box-shadow .25s}
+.btn:hover{transform:translateY(-1px)}
+.btn.primary:hover{box-shadow:0 8px 30px -8px rgba(242,176,74,.7)}
+.progress i{background:linear-gradient(90deg,var(--sun),#ffe2a6,var(--sun));background-size:200% 100%;animation:flow 1.1s linear infinite}
+@keyframes flow{to{background-position:-200% 0}}
+.bar i{transition:width .9s cubic-bezier(.2,.8,.2,1)}
+@media (prefers-reduced-motion:no-preference){
+  .enter{animation:rise .8s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(var(--i,0)*70ms + .05s)}
+  .stat.pop{animation:pop .6s cubic-bezier(.2,.9,.3,1.2) both;animation-delay:calc(var(--i,0)*80ms)}
+  .phead h1{background:linear-gradient(100deg,var(--fg) 38%,#ffd68a 50%,var(--fg) 62%);background-size:320% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:titleShine 2.6s .35s both}
+  .eyebrow{animation:rise .7s both}
+  .btn.primary:hover{animation:shine 1.1s ease}
+  .pill.good,.pill.bad,.pill.warn{animation:pillIn .45s both}
+}
+@keyframes rise{from{opacity:0;transform:translateY(22px) scale(.985)}to{opacity:1;transform:none}}
+@keyframes pop{from{opacity:0;transform:translateY(10px) scale(.94)}to{opacity:1;transform:none}}
+@keyframes titleShine{from{background-position:100% 0}to{background-position:0 0}}
+@keyframes shine{from{background-position:130% 0}to{background-position:-40% 0}}
+@keyframes pillIn{from{opacity:0;transform:scale(.85)}to{opacity:1;transform:none}}
