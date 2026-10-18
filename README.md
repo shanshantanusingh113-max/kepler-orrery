@@ -4,7 +4,8 @@ A browser-based planetary science lab: a live 3D orrery plus four analysis tools
 
 | Page | What it does |
 |---|---|
-| `index.html` · **Kepler Orrery** | 3D solar system driven by real Keplerian elements, with live orbital-motion detection |
+| `index.html` · **Home** | Today's planet positions computed live, current retrograde planets and the next station, and a guide to the tools |
+| `orrery.html` · **Kepler Orrery** | 3D solar system driven by real Keplerian elements, with live orbital-motion detection |
 | `anomaly.html` · **Planetary Anomaly Hunter** | Registers two images of the same site, screens sensor artifacts, ranks surface changes and rare textures with confidence scores |
 | `mission.html` · **Mission Failure Predictor** | Monte Carlo rover survival (power, thermal, comms, wear-out) and a ranking of design changes by survival gain |
 | `landing.html` · **Landing Site Finder** | Scores every landing point on a DEM for safety, science diversity and uncertainty together, with a Pareto view |
@@ -32,7 +33,7 @@ A browser-based planetary science lab: a live 3D orrery plus four analysis tools
 
 ## Run locally
 
-All pages are static files. Open `index.html` in a browser, or serve the folder:
+All pages are static files. Open `index.html` in a browser, or serve the folder (some browsers block local scripts on `file://`):
 
 ```bash
 python3 -m http.server 8000
