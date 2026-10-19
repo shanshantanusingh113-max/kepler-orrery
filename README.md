@@ -6,7 +6,7 @@ A browser-based planetary science lab: a live 3D orrery, a tonight's-sky guide, 
 
 | Page | What it does |
 |---|---|
-| `index.html` · **Home** | A live 3D solar system behind the page (scroll-driven camera, animated Sun, asteroid belt, comet), today's real numbers, animated Kepler's-laws demos, a light-speed race, and a Hindi/English voice intro with synced captions |
+| `index.html` · **Home** | A live 3D solar system behind the page (scroll-driven camera, animated Sun, asteroid belt, comet), today's real numbers, animated Kepler's-laws demos, and a light-speed race |
 | `sky.html` · **Tonight's Sky (आज रात का आसमान)** | Pick an Indian city (or your location) and see which planets are visible tonight: rise/set, best time, direction and height, brightness, constellation, Moon phase, a time-scrubbable sky view and a night timeline. Hindi and English |
 | `orrery.html` · **Kepler Orrery** | 3D solar system driven by real Keplerian elements, with live orbital-motion detection |
 | `marswalk.html` · **Marswalk Planner** | A layered map of western Jezero Crater (terrain, slope hazards, CRISM-style minerals, THEMIS-style rock cover, radio line of sight, walk-back time) with a route planner that checks a suited astronaut's walk against oxygen, EVA time, daylight, radio gaps, dust and radiation, plus a live Mars clock and NASA MOLA regional relief |
@@ -64,7 +64,6 @@ Every page carries Open Graph and Twitter card tags with a 1200×630 preview ima
 ## Tech
 
 - `space.js`: shared three.js effects (shader Sun, GPU asteroid belt, twinkling stars, comet with anti-sunward tail)
-- Narration generated offline with Piper neural TTS (Hindi voice *hi_IN-pratham*, English voice *en_US-ryan*) over a synthesized ambient bed; no copyrighted music
 
 - [three.js](https://threejs.org/) r128 with OrbitControls (loaded from CDN)
 - Procedural planet textures generated on a canvas at load time

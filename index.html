@@ -333,7 +333,6 @@ html,body{background:#04060c}
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="lab.js"></script>
-<script src="narr.js"></script>
 <script src="space.js"></script>
 <script>
 (function(){
@@ -361,11 +360,6 @@ const ease=t=>t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
 function countUp(el,to,dec,dur,suffix){ if(reduced){ el.textContent=to.toLocaleString('en-US',{minimumFractionDigits:dec,maximumFractionDigits:dec})+(suffix||''); return; }
   const t0=performance.now(); const step=t=>{ const k=Math.min(1,(t-t0)/(dur||1200)), v=to*(1-Math.pow(1-k,3)); el.textContent=v.toLocaleString('en-US',{minimumFractionDigits:dec,maximumFractionDigits:dec})+(suffix||''); if(k<1) requestAnimationFrame(step); }; requestAnimationFrame(step); }
 
-
-/* ---------- narration ---------- */
-/* narration hook: speed up time and orbit the camera while the intro plays */
-(function(){ let prev=null; window.__narrCinematic=on=>{ window.__cine=on; if(typeof sim==='undefined') return;
-  if(on){ if(prev===null) prev=sim.speed; sim.speed=30; } else if(prev!==null){ sim.speed=prev; prev=null; } }; })();
 
 /* ---------- today's numbers ---------- */
 function nextStation(jd0){ let best=null;
