@@ -75,7 +75,9 @@ function mount(){
   function loop(){ cancelAnimationFrame(raf); const step=()=>{ render(); drawViz(); if(!au.paused&&!box.hidden) raf=requestAnimationFrame(step); }; raf=requestAnimationFrame(step); }
   au.addEventListener('pause',()=>{ render(); drawViz(); });
   au.addEventListener('ended',()=>{ setIcons(false); cinematic(false); $('listenSub').textContent='↻'; $('npIco').setAttribute('d','M8 2.5a5.5 5.5 0 1 1-5.2 3.7l1.5.5A4 4 0 1 0 8 4v2L4.8 3.3 8 .5z'); $('narrPlay').setAttribute('aria-label','Replay'); });
-  load('hi');
+  const forceEn=document.body.dataset.narrLang==='en';
+  if(forceEn){ const hb=$('langSeg').querySelector('[data-l="hi"]'); if(hb) hb.remove(); }
+  load(forceEn?'en':'hi');
 })();
 }
 if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',mount); else mount();
